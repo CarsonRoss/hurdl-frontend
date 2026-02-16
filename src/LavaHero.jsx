@@ -129,34 +129,6 @@ export default function LavaHero() {
     }
   }, [handleResize])
 
-  // // Text flashlight loop — DOM-only, no React re-renders
-  // useEffect(() => {
-  //   function updateText() {
-  //     const cx = window.innerWidth / 2
-  //     const cy = window.innerHeight / 2
-  //     const { x, y } = mouseRef.current
-  //     const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2)
-  //     const p = Math.max(0, 1 - dist / FLASHLIGHT_RADIUS)
-
-  //     if (titleRef.current) {
-  //       const r = Math.round(30 + 225 * p)
-  //       const g = Math.round(30 + 215 * p)
-  //       const b = Math.round(30 + 140 * p)
-  //       titleRef.current.style.color = `rgb(${r},${g},${b})`
-  //       const ga = p * 0.6
-  //       titleRef.current.style.textShadow = ga > 0.05
-  //         ? `0 0 ${30 * p}px rgba(255,200,60,${ga}), 0 0 ${60 * p}px rgba(255,69,0,${ga * 0.5})`
-  //         : 'none'
-  //     }
-  //     if (subtitleRef.current) {
-  //       subtitleRef.current.style.color = `rgba(${180 + 75 * p},${160 + 75 * p},${140 + 75 * p},0.8)`
-  //     }
-  //     textRafRef.current = requestAnimationFrame(updateText)
-  //   }
-  //   textRafRef.current = requestAnimationFrame(updateText)
-  //   return () => cancelAnimationFrame(textRafRef.current)
-  // }, [])
-
   const handleMouseMove = useCallback((e) => {
     mouseRef.current = { x: e.clientX, y: e.clientY }
   }, [])

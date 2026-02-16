@@ -8,16 +8,79 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color: #e0e0e0; background: #111; line-height: 1.7; -webkit-font-smoothing: antialiased; }
-    .page { max-width: 700px; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
-    .back-link { display: inline-block; margin-bottom: 2rem; color: #888; text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
-    .back-link:hover { color: #fff; }
-    h1 { font-size: 2rem; font-weight: 700; color: #fff; margin-bottom: 0.25rem; }
-    h1 + p { color: #666; font-size: 0.85rem; margin-bottom: 2rem; }
-    h2 { font-size: 1.1rem; font-weight: 600; color: #fff; margin-top: 2.25rem; margin-bottom: 0.5rem; }
-    p { margin-bottom: 0.75rem; color: #bbb; font-size: 0.95rem; }
-    a { color: #ff6a33; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #e0e0e0;
+      background: #111;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 4rem;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 2rem;
+      color: #888;
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+
+    .back-link:hover {
+      color: #fff;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.25rem;
+    }
+
+    h1 + p {
+      color: #666;
+      font-size: 0.85rem;
+      margin-bottom: 2rem;
+    }
+
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #fff;
+      margin-top: 2.25rem;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      margin-bottom: 0.75rem;
+      color: #bbb;
+      font-size: 0.95rem;
+    }
+
+    ul {
+      margin: 0.5rem 0 0.75rem 1.5rem;
+      color: #bbb;
+      font-size: 0.95rem;
+    }
+
+    li {
+      margin-bottom: 0.35rem;
+    }
+
+    a {
+      color: #ff6a33;
+    }
   </style>
 </head>
 <body>
@@ -30,21 +93,35 @@
     <p>This Privacy Policy describes how Hurdl ("we," "our," or "the service") collects, uses, and protects information when you use our shift coordination and SMS communication services. We provide tools for home care agencies to manage shift drops and fill-ins and to communicate with caregivers and operating directors via text message.</p>
 
     <h2><strong>2. Information we collect</strong></h2>
-    <p>We collect and store only what is necessary to run the service:</p>
-    <p><strong>Contact information:</strong> Phone numbers for agency operating directors and caregivers, and names (first and last) associated with those roles.</p>
+    <p>We collect and process information only as necessary to operate the Hurdl service on behalf of participating home care agencies:</p>
+
+    <p><strong>Phone Numbers and Contact Information:</strong> Phone numbers for agency operating directors and caregivers are provided to us in one of the following ways:</p>
+    <ul>
+      <li>Through integration with the agency's scheduling system (AxisCare), at the agency's direction; or</li>
+      <li>When a caregiver or director voluntarily sends a text message to the agency's designated Hurdl phone number.</li>
+    </ul>
+    <p>We do not purchase, scrape, or obtain phone numbers from third-party marketing sources.</p>
+
     <p><strong>Agency and caregiver data:</strong> Information needed to coordinate shifts, such as agency name, caregiver identifiers, and similar operational details. Some of this data is received from your agency's scheduling system (AxisCare) when we send or process messages related to shifts.</p>
+
     <p><strong>Client information:</strong> For shift context only, we may store client first and last name and address (e.g. street, city, state, postal code) when a shift involves that client, so we can describe the shift in messages.</p>
-    <p><strong>Consent records:</strong> For each phone number we text, we record whether you have consented to receive messages and when you gave consent (e.g. when you reply "YES" to our consent request).</p>
+
+    <p><strong>Consent records:</strong> Before sending operational SMS notifications to any phone number, we require explicit consent. Consent is collected when the recipient replies "YES" to our consent request message. We store the phone number, timestamp, and confirmation of consent for compliance purposes.</p>
+    <p>If a caregiver initiates contact by texting the Hurdl number (for example, to report a shift call-out), we process that message as part of the operational workflow. Outbound notifications to that person will only occur after consent has been recorded.</p>
+
     <p><strong>Message content:</strong> When you send us an SMS, we receive the content of your message and your phone number. We use this to process your consent reply or, in supported flows, to generate a reply to you. Message content is not used for marketing or advertising.</p>
+
     <p>We do not collect information from you through cookies or other tracking for marketing purposes.</p>
 
     <h2><strong>3. How we use your information</strong></h2>
     <p>We use the information above only to:</p>
-    <p>Send you SMS messages about shift drops, shift offers, and shift fill-ins when you have consented to receive them.</p>
-    <p>Process your consent (e.g. when you reply YES to our consent message) and keep a record of that consent.</p>
-    <p>Coordinate shifts with your agency's scheduling system (AxisCare) and update schedules when a caregiver accepts a shift.</p>
-    <p>In one supported flow, generate a text reply to you using a third-party AI service that processes the message you sent; that use is only to respond to you, not for marketing or advertising.</p>
-    <p>Operate, secure, and improve the service (e.g. error logging; we filter sensitive data from logs).</p>
+    <ul>
+      <li>Send you SMS messages about shift drops, shift offers, and shift fill-ins when you have consented to receive them.</li>
+      <li>Process your consent (e.g. when you reply YES to our consent message) and keep a record of that consent.</li>
+      <li>Coordinate shifts with your agency's scheduling system (AxisCare) and update schedules when a caregiver accepts a shift.</li>
+      <li>In one supported flow, generate a text reply to you using a third-party AI service that processes the message you sent; that use is only to respond to you, not for marketing or advertising.</li>
+      <li>Operate, secure, and improve the service (e.g. error logging; we filter sensitive data from logs).</li>
+    </ul>
     <p>We do not use your information for marketing, advertising, or profiling.</p>
 
     <h2><strong>4. No sale or marketing sharing</strong></h2>
@@ -52,8 +129,11 @@
 
     <h2><strong>5. Third-party service providers</strong></h2>
     <p>We use the following types of providers only to operate the service:</p>
+
     <p><strong>SMS delivery:</strong> We use Twilio to send and receive text messages. Twilio processes your phone number and message content only to deliver messages and, in one flow, to generate a reply. Twilio is not permitted to use this information for marketing or to share it for marketing purposes.</p>
+
     <p><strong>Scheduling system:</strong> We integrate with AxisCare at your agency's direction. Data shared with AxisCare is limited to what is needed to update schedules and coordinate shifts (e.g. caregiver and schedule identifiers). This is not for marketing.</p>
+
     <p>We require these providers to use the data only to provide the service and in line with this policy.</p>
 
     <h2><strong>6. Data retention and security</strong></h2>
