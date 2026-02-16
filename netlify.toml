@@ -4,7 +4,7 @@
 
 [[redirects]]
   from = "/admin/*"
-  to = "http://banded-overcherished-darby.ngrok-free.dev/admin/:splat"
+  to = "https://banded-overcherished-darby.ngrok-free.dev/admin/:splat"
   status = 200
   force = true
 
