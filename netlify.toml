@@ -3,6 +3,18 @@
   publish = "dist"
 
 [[redirects]]
+  from = "/admin/*"
+  to = "https://banded-overcherished-darby.ngrok-free.dev/admin/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/assets/*"
+  to = "https://banded-overcherished-darby.ngrok-free.dev/assets/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
