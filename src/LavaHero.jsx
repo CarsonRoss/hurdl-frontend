@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 const BLOB_COUNT = 14
 const PALETTE = buildPalette()
 const FLASHLIGHT_RADIUS = 400
-const RENDER_SCALE = 0.01
+const RENDER_SCALE = 0.25
 
 function createBlobs(w, h) {
   return Array.from({ length: BLOB_COUNT }, () => ({
@@ -156,7 +156,7 @@ export default function LavaHero() {
       >
         Hurdl
       </motion.h1>
-        {/* <motion.p
+        <motion.p
           ref={subtitleRef}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -165,7 +165,7 @@ export default function LavaHero() {
           style={{ color: 'rgba(255, 235, 215, 0.8)' }}
         >
           Coming soon.
-        </motion.p> */}
+        </motion.p>
       </div>
 
       <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-6 z-10 text-sm">
