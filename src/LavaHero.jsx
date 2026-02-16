@@ -129,33 +129,33 @@ export default function LavaHero() {
     }
   }, [handleResize])
 
-  // Text flashlight loop — DOM-only, no React re-renders
-  useEffect(() => {
-    function updateText() {
-      const cx = window.innerWidth / 2
-      const cy = window.innerHeight / 2
-      const { x, y } = mouseRef.current
-      const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2)
-      const p = Math.max(0, 1 - dist / FLASHLIGHT_RADIUS)
+  // // Text flashlight loop — DOM-only, no React re-renders
+  // useEffect(() => {
+  //   function updateText() {
+  //     const cx = window.innerWidth / 2
+  //     const cy = window.innerHeight / 2
+  //     const { x, y } = mouseRef.current
+  //     const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2)
+  //     const p = Math.max(0, 1 - dist / FLASHLIGHT_RADIUS)
 
-      if (titleRef.current) {
-        const r = Math.round(30 + 225 * p)
-        const g = Math.round(30 + 215 * p)
-        const b = Math.round(30 + 140 * p)
-        titleRef.current.style.color = `rgb(${r},${g},${b})`
-        const ga = p * 0.6
-        titleRef.current.style.textShadow = ga > 0.05
-          ? `0 0 ${30 * p}px rgba(255,200,60,${ga}), 0 0 ${60 * p}px rgba(255,69,0,${ga * 0.5})`
-          : 'none'
-      }
-      if (subtitleRef.current) {
-        subtitleRef.current.style.color = `rgba(${180 + 75 * p},${160 + 75 * p},${140 + 75 * p},0.8)`
-      }
-      textRafRef.current = requestAnimationFrame(updateText)
-    }
-    textRafRef.current = requestAnimationFrame(updateText)
-    return () => cancelAnimationFrame(textRafRef.current)
-  }, [])
+  //     if (titleRef.current) {
+  //       const r = Math.round(30 + 225 * p)
+  //       const g = Math.round(30 + 215 * p)
+  //       const b = Math.round(30 + 140 * p)
+  //       titleRef.current.style.color = `rgb(${r},${g},${b})`
+  //       const ga = p * 0.6
+  //       titleRef.current.style.textShadow = ga > 0.05
+  //         ? `0 0 ${30 * p}px rgba(255,200,60,${ga}), 0 0 ${60 * p}px rgba(255,69,0,${ga * 0.5})`
+  //         : 'none'
+  //     }
+  //     if (subtitleRef.current) {
+  //       subtitleRef.current.style.color = `rgba(${180 + 75 * p},${160 + 75 * p},${140 + 75 * p},0.8)`
+  //     }
+  //     textRafRef.current = requestAnimationFrame(updateText)
+  //   }
+  //   textRafRef.current = requestAnimationFrame(updateText)
+  //   return () => cancelAnimationFrame(textRafRef.current)
+  // }, [])
 
   const handleMouseMove = useCallback((e) => {
     mouseRef.current = { x: e.clientX, y: e.clientY }
@@ -170,23 +170,27 @@ export default function LavaHero() {
       />
 
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none z-10">
-        <motion.h1
-          ref={titleRef}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
-          className="text-[4rem] sm:text-[6rem] md:text-[8rem] leading-none font-black tracking-tight"
-          style={{ fontFamily: "'Montserrat', sans-serif", color: 'rgb(30,30,30)', transition: 'color 0.08s linear, text-shadow 0.08s linear' }}
-        >
-          Hurdl
-        </motion.h1>
+      <motion.h1
+        ref={titleRef}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
+        className="text-[4rem] sm:text-[6rem] md:text-[8rem] leading-none font-black tracking-tight"
+        style={{ 
+          fontFamily: "'Montserrat', sans-serif", 
+          color: 'rgb(255, 245, 170)', // Constant soft yellow
+          textShadow: '0 0 30px rgba(255,200,60,0.6), 0 0 60px rgba(255,69,0,0.25)' // Static glow
+        }}
+      >
+        Hurdl
+      </motion.h1>
         <motion.p
           ref={subtitleRef}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4, duration: 0.8 }}
           className="mt-2 text-lg sm:text-xl tracking-wide"
-          style={{ color: 'rgba(180,160,140,0.8)', transition: 'color 0.08s linear' }}
+          style={{ color: 'rgba(255, 235, 215, 0.8)' }}
         >
           Coming soon.
         </motion.p>
