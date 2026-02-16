@@ -109,7 +109,7 @@ export default function LavaHero() {
             const dy = y - b.y
             sum += (b.r * b.r) / (dx * dx + dy * dy + 1)
           }
-          const idx = Math.min((sum * 30) | 0, 255)
+          const idx = Math.min((sum * 20) | 0, 255)
           const pi = idx * 3
           const off = (y * w + x) * 4
           data[off] = PALETTE[pi]
