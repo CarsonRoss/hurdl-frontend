@@ -10,14 +10,14 @@ function createBlobs(w, h) {
   return Array.from({ length: BLOB_COUNT }, () => ({
     x: Math.random() * w,
     y: Math.random() * h,
-    r: 60 + Math.random() * 120,
+    r: (w + h) / 8 + Math.random() * 50, 
     vx: (Math.random() - 0.5) * 0.6,
     vy: (Math.random() - 0.5) * 0.6,
     phaseX: Math.random() * Math.PI * 2,
     phaseY: Math.random() * Math.PI * 2,
     freqX: 0.002 + Math.random() * 0.003,
     freqY: 0.002 + Math.random() * 0.003,
-  }))
+  }));
 }
 
 function buildPalette() {
