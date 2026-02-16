@@ -193,8 +193,8 @@ export default function LavaHero() {
       </div>
 
       <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-6 z-10 text-sm">
-        <a href="/privacy.html" className="text-white/40 hover:text-white/80 transition-colors">Privacy Policy</a>
-        <a href="/terms.html" className="text-white/40 hover:text-white/80 transition-colors">Terms &amp; Conditions</a>
+        <a href="/privacy" className="text-white/40 hover:text-white/80 transition-colors">Privacy Policy</a>
+        <a href="/terms" className="text-white/40 hover:text-white/80 transition-colors">Terms &amp; Conditions</a>
       </div>
     </div>
   )
