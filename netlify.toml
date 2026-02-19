@@ -20,6 +20,12 @@
   force = true
 
 [[redirects]]
+  from = "/onboard/:token/success"
+  to = "https://banded-overcherished-darby.ngrok-free.dev/onboard/:token/success"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
