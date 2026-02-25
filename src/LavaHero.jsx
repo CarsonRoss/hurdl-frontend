@@ -219,7 +219,7 @@ export default function LavaHero() {
             </div>
           </div>
 
-          <div className="relative min-h-[440px] overflow-hidden">
+          <div className="relative hidden min-h-[440px] overflow-hidden lg:block">
             <WavingHandParticles />
           </div>
         </div>
