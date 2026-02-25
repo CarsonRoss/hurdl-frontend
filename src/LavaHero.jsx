@@ -69,6 +69,25 @@ function hslToRgb(h, s, l) {
   return [Math.round(ch(h + 1 / 3) * 255), Math.round(ch(h) * 255), Math.round(ch(h - 1 / 3) * 255)]
 }
 
+function LinkArrow({ className = '' }) {
+  return (
+    <svg viewBox="0 0 85.01 85.01" className={className} aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M6.62,0c-1.48,0-2.68,1.19-2.69,2.67l-.08,8.93c0,1.5,1.2,2.71,2.69,2.71h47.52c2.4,0,3.6,2.9,1.9,4.59L74.87,0H6.62Z"
+      />
+      <path
+        fill="currentColor"
+        d="M85,2.69c0-1.49-1.2-2.69-2.69-2.69h-7.44l-18.9,18.9-4.1,4.1L.79,74.08c-1.05,1.05-1.05,2.75,0,3.81l6.33,6.33c1.05,1.05,2.75,1.05,3.81,0l55.18-55.18,18.9-18.9V2.69h-.01Z"
+      />
+      <path
+        fill="currentColor"
+        d="M66.1,29.04c1.7-1.7,4.59-.49,4.59,1.9v47.52c0,1.5,1.22,2.7,2.71,2.69l8.93-.08c1.48-.01,2.67-1.21,2.67-2.69V10.13l-18.9,18.9h0Z"
+      />
+    </svg>
+  )
+}
+
 export default function LavaHero() {
   const canvasRef = useRef(null)
   const sectionThreeRef = useRef(null)
@@ -153,13 +172,26 @@ export default function LavaHero() {
       style={{ scrollBehavior: 'smooth' }}
     >
       <div className="fixed top-0 right-0 z-30 p-4 sm:p-6">
-        <button
-          type="button"
-          onClick={() => sectionThreeRef.current?.scrollIntoView({ behavior: 'smooth' })}
-          className="group rounded-full border-2 border-[#ff6a33] bg-white px-5 py-2.5 text-sm font-semibold text-[#ff6a33] shadow-md transition-all duration-300 ease-out hover:-translate-y-0.5 hover:scale-105 hover:bg-[#ff6a33] hover:text-white hover:shadow-[0_10px_25px_rgba(255,106,51,0.35)] active:translate-y-0 active:scale-100"
+        <a
+          href="#schedule-demo"
+          onClick={(event) => {
+            event.preventDefault()
+            sectionThreeRef.current?.scrollIntoView({ behavior: 'smooth' })
+          }}
+          className="group relative flex flex-col gap-[3px] text-[10px] font-medium uppercase leading-none text-white sm:text-[11px]"
         >
-          <span className="inline-block transition-all duration-300 group-hover:tracking-wide">Schedule a Demo</span>
-        </button>
+          <div className="relative flex items-center gap-[10px]">
+            <span className="pointer-events-none invisible absolute left-0 opacity-0 transition-all duration-500 ease-out group-hover:visible group-hover:opacity-100">
+              <LinkArrow className="h-[10px] w-[7px] rotate-45" />
+            </span>
+            <span className="transition-transform duration-500 ease-out group-hover:translate-x-[14px]">Book a demo</span>
+            <span className="transition-opacity duration-500 ease-out group-hover:opacity-0">
+              <LinkArrow className="h-[10px] w-[7px]" />
+            </span>
+          </div>
+          <span className="h-px w-full origin-right scale-x-100 bg-current transition-transform duration-500 ease-out group-hover:scale-x-0" />
+          <span className="absolute bottom-0 left-0 h-px w-full origin-left scale-x-0 bg-current transition-transform duration-500 ease-out group-hover:scale-x-100" />
+        </a>
       </div>
 
       <section className="relative h-screen snap-start overflow-hidden bg-black">
@@ -225,7 +257,7 @@ export default function LavaHero() {
         </div>
       </section>
 
-      <section ref={sectionThreeRef} className="relative h-screen snap-start overflow-hidden bg-white px-6 py-16 sm:px-10">
+      <section id="schedule-demo" ref={sectionThreeRef} className="relative h-screen snap-start overflow-hidden bg-white px-6 py-16 sm:px-10">
         <div className="mx-auto flex h-full max-w-3xl items-center justify-center pb-24">
           <div className="w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-8 shadow-sm sm:p-10">
             <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Schedule a Demo</h2>
