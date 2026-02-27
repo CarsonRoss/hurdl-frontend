@@ -69,25 +69,6 @@ function hslToRgb(h, s, l) {
   return [Math.round(ch(h + 1 / 3) * 255), Math.round(ch(h) * 255), Math.round(ch(h - 1 / 3) * 255)]
 }
 
-function LinkArrow({ className = '' }) {
-  return (
-    <svg viewBox="0 0 85.01 85.01" className={className} aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M6.62,0c-1.48,0-2.68,1.19-2.69,2.67l-.08,8.93c0,1.5,1.2,2.71,2.69,2.71h47.52c2.4,0,3.6,2.9,1.9,4.59L74.87,0H6.62Z"
-      />
-      <path
-        fill="currentColor"
-        d="M85,2.69c0-1.49-1.2-2.69-2.69-2.69h-7.44l-18.9,18.9-4.1,4.1L.79,74.08c-1.05,1.05-1.05,2.75,0,3.81l6.33,6.33c1.05,1.05,2.75,1.05,3.81,0l55.18-55.18,18.9-18.9V2.69h-.01Z"
-      />
-      <path
-        fill="currentColor"
-        d="M66.1,29.04c1.7-1.7,4.59-.49,4.59,1.9v47.52c0,1.5,1.22,2.7,2.71,2.69l8.93-.08c1.48-.01,2.67-1.21,2.67-2.69V10.13l-18.9,18.9h0Z"
-      />
-    </svg>
-  )
-}
-
 export default function LavaHero() {
   const canvasRef = useRef(null)
   const sectionThreeRef = useRef(null)
@@ -171,35 +152,13 @@ export default function LavaHero() {
       className="h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth"
       style={{ scrollBehavior: 'smooth' }}
     >
-      <div className="fixed top-0 right-0 z-30 p-4 sm:p-6">
-        <a
-          href="#schedule-demo"
-          onClick={(event) => {
-            event.preventDefault()
-            sectionThreeRef.current?.scrollIntoView({ behavior: 'smooth' })
-          }}
-          className="group relative flex flex-col gap-[3px] text-[10px] font-medium uppercase leading-none text-white sm:text-[11px]"
-        >
-          <div className="relative flex items-center gap-[10px]">
-            <span className="pointer-events-none invisible absolute left-0 opacity-0 transition-all duration-500 ease-out group-hover:visible group-hover:opacity-100">
-              <LinkArrow className="h-[10px] w-[7px] rotate-45" />
-            </span>
-            <span className="transition-transform duration-500 ease-out group-hover:translate-x-[14px]">Book a demo</span>
-            <span className="transition-opacity duration-500 ease-out group-hover:opacity-0">
-              <LinkArrow className="h-[10px] w-[7px]" />
-            </span>
-          </div>
-          <span className="h-px w-full origin-right scale-x-100 bg-current transition-transform duration-500 ease-out group-hover:scale-x-0" />
-          <span className="absolute bottom-0 left-0 h-px w-full origin-left scale-x-0 bg-current transition-transform duration-500 ease-out group-hover:scale-x-100" />
-        </a>
-      </div>
-
       <section className="relative h-screen snap-start overflow-hidden bg-black">
         <canvas
           ref={canvasRef}
           className="absolute inset-0 h-full w-full"
           style={{ imageRendering: 'auto' }}
         />
+        <div className="absolute inset-0 bg-black/20" />
 
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center select-none">
           <motion.h1
@@ -218,19 +177,19 @@ export default function LavaHero() {
         </div>
 
         <div className="absolute bottom-6 left-0 right-0 z-10 flex justify-center gap-6 text-sm">
-          <a href="/privacy" className="text-white/40 transition-colors hover:text-white/80">Privacy Policy</a>
-          <a href="/terms" className="text-white/40 transition-colors hover:text-white/80">Terms &amp; Conditions</a>
+          <a href="/privacy" className="text-[#f8e7b6]/60 transition-colors hover:text-[#f8e7b6]">Privacy Policy</a>
+          <a href="/terms" className="text-[#f8e7b6]/60 transition-colors hover:text-[#f8e7b6]">Terms &amp; Conditions</a>
         </div>
       </section>
 
-      <section className="relative h-screen snap-start overflow-hidden bg-[#111] px-6 py-14 text-white sm:px-10 md:px-16">
+      <section className="relative h-screen snap-start overflow-hidden bg-[#0b0b0b] px-6 py-14 text-[#f8e7b6] sm:px-10 md:px-16">
         <div className="mx-auto grid h-full max-w-6xl grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-16">
           <div className="flex min-h-0 flex-col justify-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#ff9a74]">How It Works</p>
-            <h2 className="mt-3 text-3xl font-bold leading-tight tracking-tight text-[#ffd38f] sm:text-4xl md:text-5xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f8e7b6]/70">How It Works</p>
+            <h2 className="mt-3 text-3xl font-bold leading-tight tracking-tight text-[#f8e7b6] sm:text-4xl md:text-5xl">
               Focus on care, not coordination.
             </h2>
-            <p className="mt-5 max-w-3xl text-sm leading-7 text-white/82 sm:text-base">
+            <p className="mt-5 max-w-3xl text-sm leading-7 text-[#f8e7b6]/80 sm:text-base">
               When a caregiver can’t make it, the clock starts ticking. Hurdl takes the pressure off your office staff
               by instantly identifying and notifying the right replacements. We handle the logistics of consent,
               notifications, and matching so your clients never miss an hour of the care they depend on.
@@ -239,12 +198,12 @@ export default function LavaHero() {
             <div className="mt-8 space-y-6">
               {HOW_IT_WORKS_ITEMS.map((item) => (
                 <article key={item.title} className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-[#ff6a33]/50 text-xs font-semibold text-[#ff9a74]">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-[#f8e7b6]/45 text-xs font-semibold text-[#f8e7b6]/90">
                     {item.label}
                   </div>
                   <div>
-                    <h3 className="text-base font-semibold text-[#ff8a5a] sm:text-lg">{item.title}</h3>
-                    <p className="mt-1.5 max-w-2xl text-sm leading-6 text-white/78">{item.description}</p>
+                    <h3 className="text-base font-semibold text-[#f8e7b6] sm:text-lg">{item.title}</h3>
+                    <p className="mt-1.5 max-w-2xl text-sm leading-6 text-[#f8e7b6]/72">{item.description}</p>
                   </div>
                 </article>
               ))}
@@ -257,17 +216,17 @@ export default function LavaHero() {
         </div>
       </section>
 
-      <section id="schedule-demo" ref={sectionThreeRef} className="relative h-screen snap-start overflow-hidden bg-white px-6 py-16 sm:px-10">
-        <div className="mx-auto flex h-full max-w-3xl items-center justify-center pb-24">
-          <div className="w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-8 shadow-sm sm:p-10">
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Schedule a Demo</h2>
+      <section id="schedule-demo" ref={sectionThreeRef} className="relative h-screen snap-start overflow-hidden bg-[#0a0a0a] px-6 pt-16 sm:px-10">
+        <div className="mx-auto flex h-[calc(100%-300px)] max-w-6xl items-center justify-center">
+          <div className="w-full max-w-xl rounded-2xl border border-[#f8e7b6]/20 bg-[#101010] p-8 shadow-[0_16px_50px_rgba(0,0,0,0.35)] sm:p-10">
+            <h2 className="text-3xl font-bold tracking-tight text-[#f8e7b6] sm:text-4xl">Schedule a Demo</h2>
             <form className="mt-8 space-y-5">
               <div>
                 <input
                   id="firstName"
                   name="firstName"
                   type="text"
-                  className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 outline-none transition focus:border-[#ff6a33] focus:ring-2 focus:ring-[#ff6a33]/20"
+                  className="mt-2 block w-full rounded-lg border border-[#f8e7b6]/25 bg-[#0c0c0c] px-4 py-3 text-[#f8e7b6] outline-none transition placeholder:text-[#f8e7b6]/35 focus:border-[#f8e7b6]/65 focus:ring-2 focus:ring-[#f8e7b6]/15"
                   placeholder="First name"
                 />
               </div>
@@ -277,7 +236,7 @@ export default function LavaHero() {
                   id="lastName"
                   name="lastName"
                   type="text"
-                  className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 outline-none transition focus:border-[#ff6a33] focus:ring-2 focus:ring-[#ff6a33]/20"
+                  className="mt-2 block w-full rounded-lg border border-[#f8e7b6]/25 bg-[#0c0c0c] px-4 py-3 text-[#f8e7b6] outline-none transition placeholder:text-[#f8e7b6]/35 focus:border-[#f8e7b6]/65 focus:ring-2 focus:ring-[#f8e7b6]/15"
                   placeholder="Last name"
                 />
               </div>
@@ -287,14 +246,14 @@ export default function LavaHero() {
                   id="email"
                   name="email"
                   type="email"
-                  className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 outline-none transition focus:border-[#ff6a33] focus:ring-2 focus:ring-[#ff6a33]/20"
+                  className="mt-2 block w-full rounded-lg border border-[#f8e7b6]/25 bg-[#0c0c0c] px-4 py-3 text-[#f8e7b6] outline-none transition placeholder:text-[#f8e7b6]/35 focus:border-[#f8e7b6]/65 focus:ring-2 focus:ring-[#f8e7b6]/15"
                   placeholder="you@agency.com"
                 />
               </div>
 
               <button
                 type="button"
-                className="mt-2 w-full rounded-lg bg-[#ff6a33] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#e55a28]"
+                className="mt-2 w-full rounded-lg border border-[#f8e7b6] bg-[#f8e7b6] px-5 py-3 text-sm font-semibold text-black transition hover:bg-transparent hover:text-[#f8e7b6]"
               >
                 Request Demo
               </button>
@@ -302,12 +261,22 @@ export default function LavaHero() {
           </div>
         </div>
 
-        <footer className="absolute inset-x-0 bottom-0 border-t border-gray-200/80 bg-white/90 backdrop-blur-[1px]">
-          <div className="mx-auto flex max-w-6xl pb-[10vw] items-center justify-between px-6 py-4 text-xs text-gray-500 sm:px-10">
-            <p>Autonomy, Designed for Everyday Care.</p>
-            <p>&copy; {currentYear} Hurdl</p>
+        <footer className="absolute inset-x-0 bottom-0 border-t border-[#f8e7b6]/12 bg-[#0a0a0a]">
+          <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-6 py-8 text-xs text-[#f8e7b6]/72 sm:grid-cols-4 sm:px-10">
+            <div className="col-span-2 sm:col-span-1">
+              <p className="text-base font-semibold text-[#f8e7b6]">Hurdl</p>
+              <p className="mt-3 leading-6">Autonomy, Designed for Everyday Care.</p>
+            </div>
+            <div>
+              <p className="mb-3 uppercase tracking-[0.12em] text-[#f8e7b6]/45">Information</p>
+              <a href="/privacy" className="block transition-colors hover:text-[#f8e7b6]">Privacy Policy</a>
+              <a href="/terms" className="mt-2 block transition-colors hover:text-[#f8e7b6]">Terms &amp; Conditions</a>
+            </div>
+            <div className="sm:text-right">
+              <p>&copy; {currentYear} Hurdl</p>
+            </div>
           </div>
-          <p className="pointer-events-none relative -mt-[12vw] translate-y-[-8vw] -bottom-[12vw] left-0 right-0 select-none text-center text-[32vw] font-black leading-[0.7] tracking-tighter text-[#ff6a33]/12 sm:text-[24vw]">
+          <p className="pointer-events-none -mt-1 select-none text-center text-[24vw] font-black leading-[0.72] tracking-tight text-[#f8e7b6]/9 sm:text-[18vw]">
             Hurdl
           </p>
         </footer>
