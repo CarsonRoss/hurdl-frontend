@@ -26,6 +26,12 @@
   force = true
 
 [[redirects]]
+  from = "/agency-api/*"
+  to = "https://banded-overcherished-darby.ngrok-free.dev/agency/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
