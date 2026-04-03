@@ -130,7 +130,7 @@ export default function AgencyLogin() {
   useEffect(() => {
     if (!isAuthenticated || !token) return
 
-    const headers = { Authorization: `Bearer ${token}` }
+    const headers = { Authorization: `Bearer ${token}`, 'ngrok-skip-browser-warning': '1' }
 
     fetch(resolveRestrictionsUrl('agency_caregivers'), { headers })
       .then((res) => (res.ok ? safeJson(res) : null))
@@ -185,7 +185,7 @@ export default function AgencyLogin() {
       setSuccess('Login successful.')
 
       fetch(dashboardUrl, {
-        headers: { Authorization: `Bearer ${payload.token}` },
+        headers: { Authorization: `Bearer ${payload.token}`, 'ngrok-skip-browser-warning': '1' },
       })
         .then((dashboardResponse) => {
           if (!dashboardResponse.ok) return null
