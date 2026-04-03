@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 function normalizeBase(base) {
   return base.replace(/\/+$/, '')
@@ -25,6 +25,12 @@ function resolveDashboardUrl() {
   return '/agency-api/dashboard'
 }
 
+function resolveRestrictionsUrl(path) {
+  const base = import.meta.env.VITE_BACKEND_URL
+  if (base) return `${normalizeBase(base)}/restrictions/${path}`
+  return `/agency-api/restrictions/${path}`
+}
+
 function mapErrorMessage(status, payload) {
   const text = String(payload?.error || payload?.message || '').toLowerCase()
   if (text.includes('phone')) return 'Wrong phone number.'
@@ -45,49 +51,6 @@ const DEFAULT_RESTRICTIONS = [
   { id: 5, name: 'Perfume sensitivity', category: 'Allergy' },
 ]
 
-const DEFAULT_CLIENTS = [
-  {
-    id: 101,
-    first_name: 'Maria',
-    last_name: 'Alvarez',
-    city: 'Tampa',
-    state: 'FL',
-    requires_spanish_speaker: true,
-    client_restrictions: [
-      { restriction_id: 1, notes: 'Large dog in home daily.' },
-      { restriction_id: 5, notes: 'Avoid strong scents.' },
-    ],
-  },
-  {
-    id: 102,
-    first_name: 'David',
-    last_name: 'Miles',
-    city: 'Brandon',
-    state: 'FL',
-    requires_spanish_speaker: false,
-    client_restrictions: [{ restriction_id: 3, notes: 'Transfer support required.' }],
-  },
-]
-
-const DEFAULT_CAREGIVERS = [
-  {
-    id: 201,
-    first_name: 'Sophia',
-    last_name: 'Nguyen',
-    phone_number: '(813) 555-0198',
-    is_spanish_speaking: true,
-    caregiver_restrictions: [{ restriction_id: 1, notes: 'Scared of dogs.' }],
-  },
-  {
-    id: 202,
-    first_name: 'Robert',
-    last_name: 'Hale',
-    phone_number: '(813) 555-0112',
-    is_spanish_speaking: false,
-    caregiver_restrictions: [{ restriction_id: 4, notes: 'Recent knee injury.' }],
-  },
-]
-
 function fullName(person) {
   return `${person.first_name || ''} ${person.last_name || ''}`.trim()
 }
@@ -100,8 +63,6 @@ function restrictionLabel(restriction) {
 function hydrateDashboard(payload) {
   return {
     restrictions: Array.isArray(payload?.restrictions) && payload.restrictions.length > 0 ? payload.restrictions : DEFAULT_RESTRICTIONS,
-    clients: Array.isArray(payload?.clients) && payload.clients.length > 0 ? payload.clients : DEFAULT_CLIENTS,
-    caregivers: Array.isArray(payload?.caregivers) && payload.caregivers.length > 0 ? payload.caregivers : DEFAULT_CAREGIVERS,
   }
 }
 
@@ -147,6 +108,8 @@ export default function AgencyLogin() {
   const [newCaregiverRestrictionId, setNewCaregiverRestrictionId] = useState('')
   const [clientRestrictionNotes, setClientRestrictionNotes] = useState('')
   const [caregiverRestrictionNotes, setCaregiverRestrictionNotes] = useState('')
+  const [token, setToken] = useState(null)
+  const [agency, setAgency] = useState(null)
 
   const canSubmit = phone.trim().length > 0 && password.length > 0 && !submitting
 
@@ -159,19 +122,36 @@ export default function AgencyLogin() {
   const availableClientRestrictions = restrictions.filter((restriction) => !selectedClientRestrictionIds.has(restriction.id))
   const availableCaregiverRestrictions = restrictions.filter((restriction) => !selectedCaregiverRestrictionIds.has(restriction.id))
 
-  function applyDashboardData(payload, preserveSelection = false) {
+  function applyDashboardData(payload) {
     const next = hydrateDashboard(payload)
-    setClients(next.clients)
-    setCaregivers(next.caregivers)
     setRestrictions(next.restrictions)
-    if (preserveSelection) {
-      setSelectedClientId((current) => current ?? next.clients[0]?.id ?? null)
-      setSelectedCaregiverId((current) => current ?? next.caregivers[0]?.id ?? null)
-      return
-    }
-    setSelectedClientId(next.clients[0]?.id ?? null)
-    setSelectedCaregiverId(next.caregivers[0]?.id ?? null)
   }
+
+  useEffect(() => {
+    if (!isAuthenticated || !token) return
+
+    const headers = { Authorization: `Bearer ${token}` }
+
+    fetch(resolveRestrictionsUrl('agency_caregivers'), { headers })
+      .then((res) => (res.ok ? safeJson(res) : null))
+      .then((data) => {
+        if (data?.caregivers) {
+          setCaregivers(data.caregivers)
+          setSelectedCaregiverId((current) => current ?? data.caregivers[0]?.id ?? null)
+        }
+      })
+      .catch(() => {})
+
+    fetch(resolveRestrictionsUrl('agency_clients'), { headers })
+      .then((res) => (res.ok ? safeJson(res) : null))
+      .then((data) => {
+        if (data?.clients) {
+          setClients(data.clients)
+          setSelectedClientId((current) => current ?? data.clients[0]?.id ?? null)
+        }
+      })
+      .catch(() => {})
+  }, [isAuthenticated, token])
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -198,22 +178,24 @@ export default function AgencyLogin() {
         return
       }
 
+      setToken(payload.token)
+      setAgency(payload.agency)
       applyDashboardData(payload)
       setIsAuthenticated(true)
       setSuccess('Login successful.')
 
-      fetch(dashboardUrl)
+      fetch(dashboardUrl, {
+        headers: { Authorization: `Bearer ${payload.token}` },
+      })
         .then((dashboardResponse) => {
           if (!dashboardResponse.ok) return null
           return safeJson(dashboardResponse)
         })
         .then((dashboardPayload) => {
           if (!dashboardPayload) return
-          applyDashboardData(dashboardPayload, true)
+          applyDashboardData(dashboardPayload)
         })
-        .catch(() => {
-          // Backend dashboard endpoint is optional during frontend-only work.
-        })
+        .catch(() => {})
     } catch {
       setError('Unable to connect to the server. Please try again.')
     } finally {
@@ -260,7 +242,9 @@ export default function AgencyLogin() {
       <main className="min-h-screen bg-[#f7f7f7] px-4 py-6 text-[#1a1a1a] sm:px-8">
         <div className="mx-auto max-w-6xl">
           <header className="mb-6 rounded-xl border border-[#ececec] bg-white px-5 py-4">
-            <h1 className="text-2xl font-semibold text-[#ff6a33]">Agency Dashboard</h1>
+            <h1 className="text-2xl font-semibold text-[#ff6a33]">
+              {agency?.legal_name ? `${agency.legal_name} Dashboard` : 'Agency Dashboard'}
+            </h1>
             <p className="mt-1 text-sm text-[#666]">
               Manage caregivers, clients, and restrictions. Client restrictions are the primary control surface for matching.
             </p>
@@ -451,38 +435,32 @@ export default function AgencyLogin() {
 
           {activeTab === 'caregivers' ? (
             <section className="rounded-xl border border-[#ececec] bg-white p-4">
-              <h2 className="text-lg font-semibold">Caregiver List</h2>
+              <h2 className="text-lg font-semibold">My Caregivers</h2>
               <div className="mt-3 divide-y divide-[#efefef]">
                 {caregivers.map((caregiver) => (
-                  <div key={caregiver.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm font-medium">{fullName(caregiver)}</p>
-                      <p className="text-xs text-[#666]">{caregiver.phone_number || 'No phone on file'}</p>
-                    </div>
-                    <p className="text-xs text-[#666]">{caregiver.is_spanish_speaking ? 'Spanish speaking' : 'English only'}</p>
+                  <div key={caregiver.id} className="py-3">
+                    <p className="text-sm font-medium">{fullName(caregiver)}</p>
                   </div>
                 ))}
+                {caregivers.length === 0 && (
+                  <p className="py-3 text-sm text-[#666]">No caregivers found.</p>
+                )}
               </div>
             </section>
           ) : null}
 
           {activeTab === 'clients' ? (
             <section className="rounded-xl border border-[#ececec] bg-white p-4">
-              <h2 className="text-lg font-semibold">Client List</h2>
+              <h2 className="text-lg font-semibold">My Clients</h2>
               <div className="mt-3 divide-y divide-[#efefef]">
                 {clients.map((client) => (
-                  <div key={client.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm font-medium">{fullName(client)}</p>
-                      <p className="text-xs text-[#666]">
-                        {[client.city, client.state].filter(Boolean).join(', ') || 'Location not available'}
-                      </p>
-                    </div>
-                    <p className="text-xs text-[#666]">
-                      {client.requires_spanish_speaker ? 'Needs Spanish-speaking caregiver' : 'No language requirement'}
-                    </p>
+                  <div key={client.id} className="py-3">
+                    <p className="text-sm font-medium">{fullName(client)}</p>
                   </div>
                 ))}
+                {clients.length === 0 && (
+                  <p className="py-3 text-sm text-[#666]">No clients found.</p>
+                )}
               </div>
             </section>
           ) : null}
@@ -497,7 +475,7 @@ export default function AgencyLogin() {
       style={{ fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif" }}
     >
       <section className="w-full max-w-[400px] px-6 py-8">
-        <h1 className="mb-1 text-center text-5xl font-medium tracking-[-0.02em] text-[#ff6a33]">Hurdl</h1>
+        <h1 className="mb-1 text-center text-5xl font-black tracking-[-0.02em] text-[#ff6a33]">Hurdl</h1>
 
         <div className="mb-6">
           {error ? (
