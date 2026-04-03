@@ -28,7 +28,7 @@ function resolveDashboardUrl() {
 function resolveRestrictionsUrl(path) {
   const base = import.meta.env.VITE_BACKEND_URL
   if (base) return `${normalizeBase(base)}/restrictions/${path}`
-  return `/agency-api/restrictions/${path}`
+  return `/restrictions-api/${path}`
 }
 
 function mapErrorMessage(status, payload) {

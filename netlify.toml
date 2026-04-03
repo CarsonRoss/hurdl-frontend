@@ -32,6 +32,12 @@
   force = true
 
 [[redirects]]
+  from = "/restrictions-api/*"
+  to = "https://banded-overcherished-darby.ngrok-free.dev/restrictions/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
