@@ -15,16 +15,6 @@ function resolveLoginUrl() {
   return '/agency-api/login'
 }
 
-function resolveDashboardUrl() {
-  const configured = import.meta.env.VITE_AGENCY_DASHBOARD_URL
-  if (configured) return configured
-
-  const base = import.meta.env.VITE_BACKEND_URL
-  if (base) return `${normalizeBase(base)}/agency/dashboard`
-
-  return '/agency-api/dashboard'
-}
-
 function resolveRestrictionsUrl(path) {
   const base = import.meta.env.VITE_BACKEND_URL
   if (base) return `${normalizeBase(base)}/restrictions/${path}`
@@ -43,55 +33,18 @@ async function safeJson(response) {
   return response.json().catch(() => ({}))
 }
 
-const DEFAULT_RESTRICTIONS = [
-  { id: 1, name: 'Dog in home', category: 'Environment' },
-  { id: 2, name: 'Cat in home', category: 'Environment' },
-  { id: 3, name: 'Requires heavy lifting', category: 'Physical' },
-  { id: 4, name: 'Stairs required', category: 'Physical' },
-  { id: 5, name: 'Perfume sensitivity', category: 'Allergy' },
-]
-
 function fullName(person) {
   return `${person.first_name || ''} ${person.last_name || ''}`.trim()
 }
 
-function restrictionLabel(restriction) {
-  if (!restriction) return 'Unknown restriction'
-  return restriction.category ? `${restriction.name} (${restriction.category})` : restriction.name
-}
-
-function hydrateDashboard(payload) {
-  return {
-    restrictions: Array.isArray(payload?.restrictions) && payload.restrictions.length > 0 ? payload.restrictions : DEFAULT_RESTRICTIONS,
-  }
-}
-
-function removeRestrictionFromEntity(items, targetId, restrictionId, key) {
-  return items.map((item) => {
-    if (item.id !== targetId) return item
-    return {
-      ...item,
-      [key]: (item[key] || []).filter((entry) => entry.restriction_id !== restrictionId),
-    }
-  })
-}
-
-function addRestrictionToEntity(items, targetId, restrictionId, notes, key) {
-  return items.map((item) => {
-    if (item.id !== targetId) return item
-    const current = item[key] || []
-    const alreadyExists = current.some((entry) => entry.restriction_id === restrictionId)
-    if (alreadyExists) return item
-    return {
-      ...item,
-      [key]: [...current, { restriction_id: restrictionId, notes: notes.trim() }],
-    }
-  })
+function restrictionLabel(name, types) {
+  const type = types.find((t) => t.name === name)
+  if (!type) return name
+  return type.category ? `${name} (${type.category})` : name
 }
 
 export default function AgencyLogin() {
   const loginUrl = useMemo(resolveLoginUrl, [])
-  const dashboardUrl = useMemo(resolveDashboardUrl, [])
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -101,11 +54,12 @@ export default function AgencyLogin() {
   const [activeTab, setActiveTab] = useState('clientRestrictions')
   const [clients, setClients] = useState([])
   const [caregivers, setCaregivers] = useState([])
-  const [restrictions, setRestrictions] = useState([])
+  const [clientRestrictionTypes, setClientRestrictionTypes] = useState([])
+  const [caregiverRestrictionTypes, setCaregiverRestrictionTypes] = useState([])
   const [selectedClientId, setSelectedClientId] = useState(null)
   const [selectedCaregiverId, setSelectedCaregiverId] = useState(null)
-  const [newClientRestrictionId, setNewClientRestrictionId] = useState('')
-  const [newCaregiverRestrictionId, setNewCaregiverRestrictionId] = useState('')
+  const [newClientRestrictionName, setNewClientRestrictionName] = useState('')
+  const [newCaregiverRestrictionName, setNewCaregiverRestrictionName] = useState('')
   const [clientRestrictionNotes, setClientRestrictionNotes] = useState('')
   const [caregiverRestrictionNotes, setCaregiverRestrictionNotes] = useState('')
   const [token, setToken] = useState(null)
@@ -115,22 +69,18 @@ export default function AgencyLogin() {
 
   const selectedClient = clients.find((client) => client.id === selectedClientId) || null
   const selectedCaregiver = caregivers.find((caregiver) => caregiver.id === selectedCaregiverId) || null
-  const selectedClientRestrictionIds = new Set((selectedClient?.client_restrictions || []).map((entry) => entry.restriction_id))
-  const selectedCaregiverRestrictionIds = new Set(
-    (selectedCaregiver?.caregiver_restrictions || []).map((entry) => entry.restriction_id)
-  )
-  const availableClientRestrictions = restrictions.filter((restriction) => !selectedClientRestrictionIds.has(restriction.id))
-  const availableCaregiverRestrictions = restrictions.filter((restriction) => !selectedCaregiverRestrictionIds.has(restriction.id))
+  const selectedClientRestrictionNames = new Set((selectedClient?.restrictions || []).map((r) => r.name))
+  const selectedCaregiverRestrictionNames = new Set((selectedCaregiver?.restrictions || []).map((r) => r.name))
+  const availableClientRestrictions = clientRestrictionTypes.filter((t) => !selectedClientRestrictionNames.has(t.name))
+  const availableCaregiverRestrictions = caregiverRestrictionTypes.filter((t) => !selectedCaregiverRestrictionNames.has(t.name))
 
-  function applyDashboardData(payload) {
-    const next = hydrateDashboard(payload)
-    setRestrictions(next.restrictions)
+  function authHeaders() {
+    return { Authorization: `Bearer ${token}`, 'ngrok-skip-browser-warning': '1' }
   }
 
   useEffect(() => {
     if (!isAuthenticated || !token) return
-
-    const headers = { Authorization: `Bearer ${token}`, 'ngrok-skip-browser-warning': '1' }
+    const headers = authHeaders()
 
     fetch(resolveRestrictionsUrl('agency_caregivers'), { headers })
       .then((res) => (res.ok ? safeJson(res) : null))
@@ -149,6 +99,20 @@ export default function AgencyLogin() {
           setClients(data.clients)
           setSelectedClientId((current) => current ?? data.clients[0]?.id ?? null)
         }
+      })
+      .catch(() => {})
+
+    fetch(resolveRestrictionsUrl('caregiver_types'), { headers })
+      .then((res) => (res.ok ? safeJson(res) : null))
+      .then((data) => {
+        if (data?.caregiver_restriction_types) setCaregiverRestrictionTypes(data.caregiver_restriction_types)
+      })
+      .catch(() => {})
+
+    fetch(resolveRestrictionsUrl('client_types'), { headers })
+      .then((res) => (res.ok ? safeJson(res) : null))
+      .then((data) => {
+        if (data?.client_restriction_types) setClientRestrictionTypes(data.client_restriction_types)
       })
       .catch(() => {})
   }, [isAuthenticated, token])
@@ -180,22 +144,8 @@ export default function AgencyLogin() {
 
       setToken(payload.token)
       setAgency(payload.agency)
-      applyDashboardData(payload)
       setIsAuthenticated(true)
       setSuccess('Login successful.')
-
-      fetch(dashboardUrl, {
-        headers: { Authorization: `Bearer ${payload.token}`, 'ngrok-skip-browser-warning': '1' },
-      })
-        .then((dashboardResponse) => {
-          if (!dashboardResponse.ok) return null
-          return safeJson(dashboardResponse)
-        })
-        .then((dashboardPayload) => {
-          if (!dashboardPayload) return
-          applyDashboardData(dashboardPayload)
-        })
-        .catch(() => {})
     } catch {
       setError('Unable to connect to the server. Please try again.')
     } finally {
@@ -203,38 +153,66 @@ export default function AgencyLogin() {
     }
   }
 
+  async function syncCaregiverRestrictions(caregiverId, actions) {
+    try {
+      const res = await fetch(resolveRestrictionsUrl(`caregivers/${caregiverId}`), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restrictions: actions }),
+      })
+      if (!res.ok) return
+      const data = await safeJson(res)
+      if (data?.restrictions) {
+        setCaregivers((current) =>
+          current.map((c) => (c.id === caregiverId ? { ...c, restrictions: data.restrictions } : c))
+        )
+      }
+    } catch {}
+  }
+
+  async function syncClientRestrictions(clientId, actions) {
+    try {
+      const res = await fetch(resolveRestrictionsUrl(`clients/${clientId}`), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restrictions: actions }),
+      })
+      if (!res.ok) return
+      const data = await safeJson(res)
+      if (data?.restrictions) {
+        setClients((current) =>
+          current.map((c) => (c.id === clientId ? { ...c, restrictions: data.restrictions } : c))
+        )
+      }
+    } catch {}
+  }
+
   function addClientRestriction() {
-    if (!selectedClientId || !newClientRestrictionId) return
-    const restrictionId = Number(newClientRestrictionId)
-    setClients((current) =>
-      addRestrictionToEntity(current, selectedClientId, restrictionId, clientRestrictionNotes, 'client_restrictions')
-    )
+    if (!selectedClientId || !newClientRestrictionName) return
+    syncClientRestrictions(selectedClientId, [
+      { name: newClientRestrictionName, action: 'add', notes: clientRestrictionNotes.trim() },
+    ])
     setClientRestrictionNotes('')
-    setNewClientRestrictionId('')
+    setNewClientRestrictionName('')
   }
 
   function addCaregiverRestriction() {
-    if (!selectedCaregiverId || !newCaregiverRestrictionId) return
-    const restrictionId = Number(newCaregiverRestrictionId)
-    setCaregivers((current) =>
-      addRestrictionToEntity(current, selectedCaregiverId, restrictionId, caregiverRestrictionNotes, 'caregiver_restrictions')
-    )
+    if (!selectedCaregiverId || !newCaregiverRestrictionName) return
+    syncCaregiverRestrictions(selectedCaregiverId, [
+      { name: newCaregiverRestrictionName, action: 'add', notes: caregiverRestrictionNotes.trim() },
+    ])
     setCaregiverRestrictionNotes('')
-    setNewCaregiverRestrictionId('')
+    setNewCaregiverRestrictionName('')
   }
 
-  function removeClientRestriction(restrictionId) {
+  function removeClientRestriction(name) {
     if (!selectedClientId) return
-    setClients((current) => removeRestrictionFromEntity(current, selectedClientId, restrictionId, 'client_restrictions'))
+    syncClientRestrictions(selectedClientId, [{ name, action: 'remove' }])
   }
 
-  function removeCaregiverRestriction(restrictionId) {
+  function removeCaregiverRestriction(name) {
     if (!selectedCaregiverId) return
-    setCaregivers((current) => removeRestrictionFromEntity(current, selectedCaregiverId, restrictionId, 'caregiver_restrictions'))
-  }
-
-  function lookupRestriction(restrictionId) {
-    return restrictions.find((restriction) => restriction.id === restrictionId)
+    syncCaregiverRestrictions(selectedCaregiverId, [{ name, action: 'remove' }])
   }
 
   if (isAuthenticated) {
@@ -261,7 +239,7 @@ export default function AgencyLogin() {
             </div>
             <div className="rounded-xl border border-[#ececec] bg-white p-4">
               <p className="text-xs uppercase tracking-[0.08em] text-[#777]">Restriction Types</p>
-              <p className="mt-1 text-2xl font-semibold">{restrictions.length}</p>
+              <p className="mt-1 text-2xl font-semibold">{clientRestrictionTypes.length + caregiverRestrictionTypes.length}</p>
             </div>
           </section>
 
@@ -311,22 +289,22 @@ export default function AgencyLogin() {
                 </select>
 
                 <div className="mt-4 space-y-2">
-                  {(selectedClient?.client_restrictions || []).map((entry) => (
-                    <div key={entry.restriction_id} className="flex items-start justify-between gap-3 rounded-lg border border-[#efefef] p-3">
+                  {(selectedClient?.restrictions || []).map((entry) => (
+                    <div key={entry.name} className="flex items-start justify-between gap-3 rounded-lg border border-[#efefef] p-3">
                       <div>
-                        <p className="text-sm font-medium">{restrictionLabel(lookupRestriction(entry.restriction_id))}</p>
+                        <p className="text-sm font-medium">{restrictionLabel(entry.name, clientRestrictionTypes)}</p>
                         {entry.notes ? <p className="text-xs text-[#666]">{entry.notes}</p> : null}
                       </div>
                       <button
                         type="button"
-                        onClick={() => removeClientRestriction(entry.restriction_id)}
+                        onClick={() => removeClientRestriction(entry.name)}
                         className="text-xs text-[#b13d18] underline"
                       >
                         Remove
                       </button>
                     </div>
                   ))}
-                  {(selectedClient?.client_restrictions || []).length === 0 ? (
+                  {(selectedClient?.restrictions || []).length === 0 ? (
                     <p className="rounded-lg border border-dashed border-[#ebebeb] p-3 text-xs text-[#777]">No restrictions assigned yet.</p>
                   ) : null}
                 </div>
@@ -335,13 +313,13 @@ export default function AgencyLogin() {
                   <p className="text-sm font-medium">Add restriction</p>
                   <select
                     className="mt-2 w-full rounded-lg border border-[#dfdfdf] bg-white px-3 py-2 text-sm"
-                    value={newClientRestrictionId}
-                    onChange={(event) => setNewClientRestrictionId(event.target.value)}
+                    value={newClientRestrictionName}
+                    onChange={(event) => setNewClientRestrictionName(event.target.value)}
                   >
                     <option value="">Select restriction</option>
-                    {availableClientRestrictions.map((restriction) => (
-                      <option key={restriction.id} value={restriction.id}>
-                        {restrictionLabel(restriction)}
+                    {availableClientRestrictions.map((type) => (
+                      <option key={type.id} value={type.name}>
+                        {restrictionLabel(type.name, clientRestrictionTypes)}
                       </option>
                     ))}
                   </select>
@@ -354,7 +332,7 @@ export default function AgencyLogin() {
                   <button
                     type="button"
                     onClick={addClientRestriction}
-                    disabled={!newClientRestrictionId}
+                    disabled={!newClientRestrictionName}
                     className="mt-2 rounded-lg bg-[#ff6a33] px-3 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     Add Client Restriction
@@ -380,22 +358,22 @@ export default function AgencyLogin() {
                 </select>
 
                 <div className="mt-4 space-y-2">
-                  {(selectedCaregiver?.caregiver_restrictions || []).map((entry) => (
-                    <div key={entry.restriction_id} className="flex items-start justify-between gap-3 rounded-lg border border-[#efefef] p-3">
+                  {(selectedCaregiver?.restrictions || []).map((entry) => (
+                    <div key={entry.name} className="flex items-start justify-between gap-3 rounded-lg border border-[#efefef] p-3">
                       <div>
-                        <p className="text-sm font-medium">{restrictionLabel(lookupRestriction(entry.restriction_id))}</p>
+                        <p className="text-sm font-medium">{restrictionLabel(entry.name, caregiverRestrictionTypes)}</p>
                         {entry.notes ? <p className="text-xs text-[#666]">{entry.notes}</p> : null}
                       </div>
                       <button
                         type="button"
-                        onClick={() => removeCaregiverRestriction(entry.restriction_id)}
+                        onClick={() => removeCaregiverRestriction(entry.name)}
                         className="text-xs text-[#b13d18] underline"
                       >
                         Remove
                       </button>
                     </div>
                   ))}
-                  {(selectedCaregiver?.caregiver_restrictions || []).length === 0 ? (
+                  {(selectedCaregiver?.restrictions || []).length === 0 ? (
                     <p className="rounded-lg border border-dashed border-[#ebebeb] p-3 text-xs text-[#777]">No restrictions assigned yet.</p>
                   ) : null}
                 </div>
@@ -404,13 +382,13 @@ export default function AgencyLogin() {
                   <p className="text-sm font-medium">Add restriction</p>
                   <select
                     className="mt-2 w-full rounded-lg border border-[#dfdfdf] bg-white px-3 py-2 text-sm"
-                    value={newCaregiverRestrictionId}
-                    onChange={(event) => setNewCaregiverRestrictionId(event.target.value)}
+                    value={newCaregiverRestrictionName}
+                    onChange={(event) => setNewCaregiverRestrictionName(event.target.value)}
                   >
                     <option value="">Select restriction</option>
-                    {availableCaregiverRestrictions.map((restriction) => (
-                      <option key={restriction.id} value={restriction.id}>
-                        {restrictionLabel(restriction)}
+                    {availableCaregiverRestrictions.map((type) => (
+                      <option key={type.id} value={type.name}>
+                        {restrictionLabel(type.name, caregiverRestrictionTypes)}
                       </option>
                     ))}
                   </select>
@@ -423,7 +401,7 @@ export default function AgencyLogin() {
                   <button
                     type="button"
                     onClick={addCaregiverRestriction}
-                    disabled={!newCaregiverRestrictionId}
+                    disabled={!newCaregiverRestrictionName}
                     className="mt-2 rounded-lg bg-[#ff6a33] px-3 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     Add Caregiver Restriction
