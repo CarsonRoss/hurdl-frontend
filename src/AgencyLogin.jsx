@@ -88,7 +88,7 @@ export default function AgencyLogin() {
   const [submitting, setSubmitting] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(!!cached)
   const [activeTab, setActiveTab] = useState('caregivers')
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768)
   const [clients, setClients] = useState([])
   const [caregivers, setCaregivers] = useState([])
   const [clientRestrictionTypes, setClientRestrictionTypes] = useState([])
@@ -280,9 +280,26 @@ export default function AgencyLogin() {
 
     return (
       <main className="flex min-h-screen bg-[#f7f7f7] text-[#1a1a1a]">
+        <div className="fixed inset-x-0 top-0 z-30 flex h-14 items-center justify-between border-b border-[#ececec] bg-white px-4 md:hidden">
+          <img src="/hurdl_logo.png" alt="Hurdl" className="h-20" />
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="rounded-lg p-1.5 text-[#666]"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+              <path d="M3 12h18M3 6h18M3 18h18" />
+            </svg>
+          </button>
+        </div>
+
+        {sidebarOpen && (
+          <div className="fixed inset-0 z-40 bg-black/20 md:hidden" onClick={() => setSidebarOpen(false)} />
+        )}
+
         <aside
-          className={`flex shrink-0 flex-col border-r border-[#ececec] bg-white overflow-hidden transition-[width] duration-200 ${
-            sidebarOpen ? 'w-56' : 'w-14'
+          className={`fixed inset-y-0 left-0 z-50 flex w-56 shrink-0 flex-col border-r border-[#ececec] bg-white overflow-hidden transition-all duration-200 md:static md:z-auto md:translate-x-0 ${
+            sidebarOpen ? 'translate-x-0 md:w-56' : '-translate-x-full md:w-14'
           }`}
         >
           <div className={`flex shrink-0 items-center border-b border-[#ececec] ${sidebarOpen ? 'h-16 justify-between px-4' : 'h-14 justify-center'}`}>
@@ -301,7 +318,7 @@ export default function AgencyLogin() {
           <nav className="flex flex-1 flex-col gap-1 px-2">
             <button
               type="button"
-              onClick={() => setActiveTab('caregivers')}
+              onClick={() => { setActiveTab('caregivers'); if (window.innerWidth < 768) setSidebarOpen(false) }}
               className={`flex items-center rounded-lg px-3 py-2.5 text-sm whitespace-nowrap transition-colors ${
                 sidebarOpen ? 'gap-3' : 'justify-center'
               } ${activeTab === 'caregivers' ? 'bg-[#FFF6EC] text-[#F7941D] font-medium' : 'text-[#666] hover:bg-[#f7f7f7]'}`}
@@ -315,7 +332,7 @@ export default function AgencyLogin() {
 
             <button
               type="button"
-              onClick={() => setActiveTab('clients')}
+              onClick={() => { setActiveTab('clients'); if (window.innerWidth < 768) setSidebarOpen(false) }}
               className={`flex items-center rounded-lg px-3 py-2.5 text-sm whitespace-nowrap transition-colors ${
                 sidebarOpen ? 'gap-3' : 'justify-center'
               } ${activeTab === 'clients' ? 'bg-[#FFF6EC] text-[#F7941D] font-medium' : 'text-[#666] hover:bg-[#f7f7f7]'}`}
@@ -330,7 +347,7 @@ export default function AgencyLogin() {
           </nav>
         </aside>
 
-        <div className="min-w-0 flex-1 px-6 py-8 sm:px-10">
+        <div className="min-w-0 flex-1 px-4 pt-20 pb-8 sm:px-6 md:px-10 md:pt-8">
           <h1 className="text-2xl font-semibold tracking-tight">
             Hey there, <span className="text-[#F7941D]">{agency?.first_name || ''}</span>
           </h1>
