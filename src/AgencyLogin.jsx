@@ -33,6 +33,41 @@ async function safeJson(response) {
   return response.json().catch(() => ({}))
 }
 
+const SESSION_KEY = 'hurdl_session'
+const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+function saveSession(token, agency) {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ token, agency, ts: Date.now() }))
+  } catch {}
+}
+
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY)
+    if (!raw) return null
+    const session = JSON.parse(raw)
+    if (Date.now() - session.ts > SESSION_TTL_MS) {
+      localStorage.removeItem(SESSION_KEY)
+      return null
+    }
+    return session
+  } catch {
+    return null
+  }
+}
+
+function clearSession() {
+  try { localStorage.removeItem(SESSION_KEY) } catch {}
+}
+
+function normalizeRestrictions(person) {
+  return {
+    ...person,
+    restrictions: (person.restrictions || []).map((r) => (typeof r === 'string' ? { name: r } : r)),
+  }
+}
+
 function fullName(person) {
   return `${person.first_name || ''} ${person.last_name || ''}`.trim()
 }
@@ -45,13 +80,15 @@ function restrictionLabel(name, types) {
 
 export default function AgencyLogin() {
   const loginUrl = useMemo(resolveLoginUrl, [])
+  const cached = useMemo(loadSession, [])
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [activeTab, setActiveTab] = useState('clientRestrictions')
+  const [isAuthenticated, setIsAuthenticated] = useState(!!cached)
+  const [activeTab, setActiveTab] = useState('caregivers')
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [clients, setClients] = useState([])
   const [caregivers, setCaregivers] = useState([])
   const [clientRestrictionTypes, setClientRestrictionTypes] = useState([])
@@ -62,8 +99,8 @@ export default function AgencyLogin() {
   const [newCaregiverRestrictionName, setNewCaregiverRestrictionName] = useState('')
   const [clientRestrictionNotes, setClientRestrictionNotes] = useState('')
   const [caregiverRestrictionNotes, setCaregiverRestrictionNotes] = useState('')
-  const [token, setToken] = useState(null)
-  const [agency, setAgency] = useState(null)
+  const [token, setToken] = useState(cached?.token ?? null)
+  const [agency, setAgency] = useState(cached?.agency ?? null)
 
   const canSubmit = phone.trim().length > 0 && password.length > 0 && !submitting
 
@@ -86,7 +123,7 @@ export default function AgencyLogin() {
       .then((res) => (res.ok ? safeJson(res) : null))
       .then((data) => {
         if (data?.caregivers) {
-          setCaregivers(data.caregivers)
+          setCaregivers(data.caregivers.map(normalizeRestrictions))
           setSelectedCaregiverId((current) => current ?? data.caregivers[0]?.id ?? null)
         }
       })
@@ -96,7 +133,7 @@ export default function AgencyLogin() {
       .then((res) => (res.ok ? safeJson(res) : null))
       .then((data) => {
         if (data?.clients) {
-          setClients(data.clients)
+          setClients(data.clients.map(normalizeRestrictions))
           setSelectedClientId((current) => current ?? data.clients[0]?.id ?? null)
         }
       })
@@ -144,6 +181,7 @@ export default function AgencyLogin() {
 
       setToken(payload.token)
       setAgency(payload.agency)
+      saveSession(payload.token, payload.agency)
       setIsAuthenticated(true)
       setSuccess('Login successful.')
     } catch {
@@ -216,232 +254,171 @@ export default function AgencyLogin() {
   }
 
   if (isAuthenticated) {
+    const isCaregivers = activeTab === 'caregivers'
+    const people = isCaregivers ? caregivers : clients
+    const selectedId = isCaregivers ? selectedCaregiverId : selectedClientId
+    const restrictionTypes = isCaregivers ? caregiverRestrictionTypes : clientRestrictionTypes
+    const availableRestrictions = isCaregivers ? availableCaregiverRestrictions : availableClientRestrictions
+    const newRestrictionName = isCaregivers ? newCaregiverRestrictionName : newClientRestrictionName
+    const setNewRestrictionName = isCaregivers ? setNewCaregiverRestrictionName : setNewClientRestrictionName
+    const restrictionNotes = isCaregivers ? caregiverRestrictionNotes : clientRestrictionNotes
+    const setRestrictionNotes = isCaregivers ? setCaregiverRestrictionNotes : setClientRestrictionNotes
+    const addRestriction = isCaregivers ? addCaregiverRestriction : addClientRestriction
+    const removeRestriction = isCaregivers ? removeCaregiverRestriction : removeClientRestriction
+
+    function togglePerson(id) {
+      const setter = isCaregivers ? setSelectedCaregiverId : setSelectedClientId
+      setter((current) => (current === id ? null : id))
+      if (isCaregivers) {
+        setNewCaregiverRestrictionName('')
+        setCaregiverRestrictionNotes('')
+      } else {
+        setNewClientRestrictionName('')
+        setClientRestrictionNotes('')
+      }
+    }
+
     return (
-      <main className="min-h-screen bg-[#f7f7f7] px-4 py-6 text-[#1a1a1a] sm:px-8">
-        <div className="mx-auto max-w-6xl">
-          <header className="mb-6 rounded-xl border border-[#ececec] bg-white px-5 py-4">
-            <h1 className="text-2xl font-semibold text-[#ff6a33]">
-              {agency?.legal_name ? `${agency.legal_name} Dashboard` : 'Agency Dashboard'}
-            </h1>
-            <p className="mt-1 text-sm text-[#666]">
-              Manage caregivers, clients, and restrictions. Client restrictions are the primary control surface for matching.
-            </p>
-          </header>
-
-          <section className="mb-6 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-[#ececec] bg-white p-4">
-              <p className="text-xs uppercase tracking-[0.08em] text-[#777]">Caregivers</p>
-              <p className="mt-1 text-2xl font-semibold">{caregivers.length}</p>
-            </div>
-            <div className="rounded-xl border border-[#ececec] bg-white p-4">
-              <p className="text-xs uppercase tracking-[0.08em] text-[#777]">Clients</p>
-              <p className="mt-1 text-2xl font-semibold">{clients.length}</p>
-            </div>
-            <div className="rounded-xl border border-[#ececec] bg-white p-4">
-              <p className="text-xs uppercase tracking-[0.08em] text-[#777]">Restriction Types</p>
-              <p className="mt-1 text-2xl font-semibold">{clientRestrictionTypes.length + caregiverRestrictionTypes.length}</p>
-            </div>
-          </section>
-
-          <nav className="mb-4 flex flex-wrap gap-2">
+      <main className="flex min-h-screen bg-[#f7f7f7] text-[#1a1a1a]">
+        <aside
+          className={`flex shrink-0 flex-col border-r border-[#ececec] bg-white overflow-hidden transition-[width] duration-200 ${
+            sidebarOpen ? 'w-56' : 'w-14'
+          }`}
+        >
+          <div className={`flex h-14 shrink-0 items-center ${sidebarOpen ? 'px-4' : 'justify-center'}`}>
             <button
               type="button"
-              onClick={() => setActiveTab('clientRestrictions')}
-              className={`rounded-lg px-4 py-2 text-sm ${
-                activeTab === 'clientRestrictions' ? 'bg-[#ff6a33] text-white' : 'bg-white text-[#444]'
-              }`}
+              onClick={() => setSidebarOpen((o) => !o)}
+              className="rounded-lg p-1.5 text-[#666] transition-colors hover:bg-[#f7f7f7] hover:text-[#1a1a1a]"
             >
-              Client Restrictions
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+                <path d="M3 12h18M3 6h18M3 18h18" />
+              </svg>
             </button>
+          </div>
+
+          <nav className="flex flex-1 flex-col gap-1 px-2">
             <button
               type="button"
               onClick={() => setActiveTab('caregivers')}
-              className={`rounded-lg px-4 py-2 text-sm ${activeTab === 'caregivers' ? 'bg-[#ff6a33] text-white' : 'bg-white text-[#444]'}`}
+              className={`flex items-center rounded-lg px-3 py-2.5 text-sm whitespace-nowrap transition-colors ${
+                sidebarOpen ? 'gap-3' : 'justify-center'
+              } ${activeTab === 'caregivers' ? 'bg-[#fff3ee] text-[#ff6a33] font-medium' : 'text-[#666] hover:bg-[#f7f7f7]'}`}
             >
-              Caregivers
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5 shrink-0">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              {sidebarOpen && <span>My Caregivers</span>}
             </button>
+
             <button
               type="button"
               onClick={() => setActiveTab('clients')}
-              className={`rounded-lg px-4 py-2 text-sm ${activeTab === 'clients' ? 'bg-[#ff6a33] text-white' : 'bg-white text-[#444]'}`}
+              className={`flex items-center rounded-lg px-3 py-2.5 text-sm whitespace-nowrap transition-colors ${
+                sidebarOpen ? 'gap-3' : 'justify-center'
+              } ${activeTab === 'clients' ? 'bg-[#fff3ee] text-[#ff6a33] font-medium' : 'text-[#666] hover:bg-[#f7f7f7]'}`}
             >
-              Clients
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5 shrink-0">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              {sidebarOpen && <span>My Clients</span>}
             </button>
           </nav>
+        </aside>
 
-          {activeTab === 'clientRestrictions' ? (
-            <section className="grid gap-4 lg:grid-cols-2">
-              <div className="rounded-xl border border-[#ececec] bg-white p-4">
-                <h2 className="text-lg font-semibold">Client Restrictions</h2>
-                <p className="mt-1 text-sm text-[#666]">Add or remove restrictions for each client.</p>
+        <div className="min-w-0 flex-1 px-6 py-8 sm:px-10">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Hey there, <span className="text-[#ff6a33]">{agency?.first_name || ''}</span>
+          </h1>
 
-                <label className="mt-4 block text-xs uppercase tracking-[0.08em] text-[#777]">Client</label>
-                <select
-                  className="mt-1 w-full rounded-lg border border-[#dfdfdf] bg-white px-3 py-2 text-sm"
-                  value={selectedClientId ?? ''}
-                  onChange={(event) => setSelectedClientId(Number(event.target.value))}
-                >
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {fullName(client)}
-                    </option>
-                  ))}
-                </select>
-
-                <div className="mt-4 space-y-2">
-                  {(selectedClient?.restrictions || []).map((entry) => (
-                    <div key={entry.name} className="flex items-start justify-between gap-3 rounded-lg border border-[#efefef] p-3">
-                      <div>
-                        <p className="text-sm font-medium">{restrictionLabel(entry.name, clientRestrictionTypes)}</p>
-                        {entry.notes ? <p className="text-xs text-[#666]">{entry.notes}</p> : null}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeClientRestriction(entry.name)}
-                        className="text-xs text-[#b13d18] underline"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                  {(selectedClient?.restrictions || []).length === 0 ? (
-                    <p className="rounded-lg border border-dashed border-[#ebebeb] p-3 text-xs text-[#777]">No restrictions assigned yet.</p>
-                  ) : null}
-                </div>
-
-                <div className="mt-4 rounded-lg border border-[#efefef] p-3">
-                  <p className="text-sm font-medium">Add restriction</p>
-                  <select
-                    className="mt-2 w-full rounded-lg border border-[#dfdfdf] bg-white px-3 py-2 text-sm"
-                    value={newClientRestrictionName}
-                    onChange={(event) => setNewClientRestrictionName(event.target.value)}
-                  >
-                    <option value="">Select restriction</option>
-                    {availableClientRestrictions.map((type) => (
-                      <option key={type.id} value={type.name}>
-                        {restrictionLabel(type.name, clientRestrictionTypes)}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    className="mt-2 w-full rounded-lg border border-[#dfdfdf] bg-white px-3 py-2 text-sm"
-                    placeholder="Notes (optional)"
-                    value={clientRestrictionNotes}
-                    onChange={(event) => setClientRestrictionNotes(event.target.value)}
-                  />
+          <div className="mt-8 space-y-3">
+            {people.map((person) => {
+              const isExpanded = person.id === selectedId
+              return (
+                <div key={person.id} className="overflow-hidden rounded-xl border border-[#ececec] bg-white">
                   <button
                     type="button"
-                    onClick={addClientRestriction}
-                    disabled={!newClientRestrictionName}
-                    className="mt-2 rounded-lg bg-[#ff6a33] px-3 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    onClick={() => togglePerson(person.id)}
+                    className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-[#fafafa]"
                   >
-                    Add Client Restriction
+                    <span className="text-sm font-medium">{fullName(person)}</span>
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className={`h-4 w-4 text-[#999] transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                    >
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
                   </button>
-                </div>
-              </div>
 
-              <div className="rounded-xl border border-[#ececec] bg-white p-4">
-                <h2 className="text-lg font-semibold">Caregiver Restrictions</h2>
-                <p className="mt-1 text-sm text-[#666]">Track caregiver constraints for safe matching.</p>
-
-                <label className="mt-4 block text-xs uppercase tracking-[0.08em] text-[#777]">Caregiver</label>
-                <select
-                  className="mt-1 w-full rounded-lg border border-[#dfdfdf] bg-white px-3 py-2 text-sm"
-                  value={selectedCaregiverId ?? ''}
-                  onChange={(event) => setSelectedCaregiverId(Number(event.target.value))}
-                >
-                  {caregivers.map((caregiver) => (
-                    <option key={caregiver.id} value={caregiver.id}>
-                      {fullName(caregiver)}
-                    </option>
-                  ))}
-                </select>
-
-                <div className="mt-4 space-y-2">
-                  {(selectedCaregiver?.restrictions || []).map((entry) => (
-                    <div key={entry.name} className="flex items-start justify-between gap-3 rounded-lg border border-[#efefef] p-3">
-                      <div>
-                        <p className="text-sm font-medium">{restrictionLabel(entry.name, caregiverRestrictionTypes)}</p>
-                        {entry.notes ? <p className="text-xs text-[#666]">{entry.notes}</p> : null}
+                  {isExpanded && (
+                    <div className="space-y-4 border-t border-[#ececec] px-5 py-4">
+                      <div className="space-y-2">
+                        {(person.restrictions || []).map((entry) => (
+                          <div
+                            key={entry.name}
+                            className="flex items-start justify-between gap-3 rounded-lg bg-[#f7f7f7] px-3 py-2.5"
+                          >
+                            <div>
+                              <p className="text-sm">{restrictionLabel(entry.name, restrictionTypes)}</p>
+                              {entry.notes ? <p className="mt-0.5 text-xs text-[#888]">{entry.notes}</p> : null}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeRestriction(entry.name)}
+                              className="shrink-0 text-xs text-[#b13d18] hover:underline"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                        {(person.restrictions || []).length === 0 ? (
+                          <p className="text-xs text-[#999]">No restrictions yet.</p>
+                        ) : null}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => removeCaregiverRestriction(entry.name)}
-                        className="text-xs text-[#b13d18] underline"
-                      >
-                        Remove
-                      </button>
+
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                        <select
+                          className="flex-1 rounded-lg border border-[#dfdfdf] bg-white px-3 py-2 text-sm"
+                          value={newRestrictionName}
+                          onChange={(e) => setNewRestrictionName(e.target.value)}
+                        >
+                          <option value="">Add a restriction...</option>
+                          {availableRestrictions.map((type) => (
+                            <option key={type.id} value={type.name}>
+                              {restrictionLabel(type.name, restrictionTypes)}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          className="rounded-lg border border-[#dfdfdf] bg-white px-3 py-2 text-sm sm:flex-1"
+                          placeholder="Notes (optional)"
+                          value={restrictionNotes}
+                          onChange={(e) => setRestrictionNotes(e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          onClick={addRestriction}
+                          disabled={!newRestrictionName}
+                          className="rounded-lg bg-[#ff6a33] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#e55a28] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Add
+                        </button>
+                      </div>
                     </div>
-                  ))}
-                  {(selectedCaregiver?.restrictions || []).length === 0 ? (
-                    <p className="rounded-lg border border-dashed border-[#ebebeb] p-3 text-xs text-[#777]">No restrictions assigned yet.</p>
-                  ) : null}
+                  )}
                 </div>
-
-                <div className="mt-4 rounded-lg border border-[#efefef] p-3">
-                  <p className="text-sm font-medium">Add restriction</p>
-                  <select
-                    className="mt-2 w-full rounded-lg border border-[#dfdfdf] bg-white px-3 py-2 text-sm"
-                    value={newCaregiverRestrictionName}
-                    onChange={(event) => setNewCaregiverRestrictionName(event.target.value)}
-                  >
-                    <option value="">Select restriction</option>
-                    {availableCaregiverRestrictions.map((type) => (
-                      <option key={type.id} value={type.name}>
-                        {restrictionLabel(type.name, caregiverRestrictionTypes)}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    className="mt-2 w-full rounded-lg border border-[#dfdfdf] bg-white px-3 py-2 text-sm"
-                    placeholder="Notes (optional)"
-                    value={caregiverRestrictionNotes}
-                    onChange={(event) => setCaregiverRestrictionNotes(event.target.value)}
-                  />
-                  <button
-                    type="button"
-                    onClick={addCaregiverRestriction}
-                    disabled={!newCaregiverRestrictionName}
-                    className="mt-2 rounded-lg bg-[#ff6a33] px-3 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Add Caregiver Restriction
-                  </button>
-                </div>
-              </div>
-            </section>
-          ) : null}
-
-          {activeTab === 'caregivers' ? (
-            <section className="rounded-xl border border-[#ececec] bg-white p-4">
-              <h2 className="text-lg font-semibold">My Caregivers</h2>
-              <div className="mt-3 divide-y divide-[#efefef]">
-                {caregivers.map((caregiver) => (
-                  <div key={caregiver.id} className="py-3">
-                    <p className="text-sm font-medium">{fullName(caregiver)}</p>
-                  </div>
-                ))}
-                {caregivers.length === 0 && (
-                  <p className="py-3 text-sm text-[#666]">No caregivers found.</p>
-                )}
-              </div>
-            </section>
-          ) : null}
-
-          {activeTab === 'clients' ? (
-            <section className="rounded-xl border border-[#ececec] bg-white p-4">
-              <h2 className="text-lg font-semibold">My Clients</h2>
-              <div className="mt-3 divide-y divide-[#efefef]">
-                {clients.map((client) => (
-                  <div key={client.id} className="py-3">
-                    <p className="text-sm font-medium">{fullName(client)}</p>
-                  </div>
-                ))}
-                {clients.length === 0 && (
-                  <p className="py-3 text-sm text-[#666]">No clients found.</p>
-                )}
-              </div>
-            </section>
-          ) : null}
+              )
+            })}
+            {people.length === 0 ? (
+              <p className="text-sm text-[#999]">No {isCaregivers ? 'caregivers' : 'clients'} found.</p>
+            ) : null}
+          </div>
         </div>
       </main>
     )
