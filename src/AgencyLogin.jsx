@@ -285,7 +285,8 @@ export default function AgencyLogin() {
             sidebarOpen ? 'w-56' : 'w-14'
           }`}
         >
-          <div className={`flex h-14 shrink-0 items-center ${sidebarOpen ? 'px-4' : 'justify-center'}`}>
+          <div className={`flex shrink-0 items-center border-b border-[#ececec] ${sidebarOpen ? 'h-16 justify-between px-4' : 'h-14 justify-center'}`}>
+            {sidebarOpen && <img src="/hurdl_logo.png" alt="Hurdl" className="h-20" />}
             <button
               type="button"
               onClick={() => setSidebarOpen((o) => !o)}
@@ -303,7 +304,7 @@ export default function AgencyLogin() {
               onClick={() => setActiveTab('caregivers')}
               className={`flex items-center rounded-lg px-3 py-2.5 text-sm whitespace-nowrap transition-colors ${
                 sidebarOpen ? 'gap-3' : 'justify-center'
-              } ${activeTab === 'caregivers' ? 'bg-[#fff3ee] text-[#ff6a33] font-medium' : 'text-[#666] hover:bg-[#f7f7f7]'}`}
+              } ${activeTab === 'caregivers' ? 'bg-[#FFF6EC] text-[#F7941D] font-medium' : 'text-[#666] hover:bg-[#f7f7f7]'}`}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5 shrink-0">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -317,7 +318,7 @@ export default function AgencyLogin() {
               onClick={() => setActiveTab('clients')}
               className={`flex items-center rounded-lg px-3 py-2.5 text-sm whitespace-nowrap transition-colors ${
                 sidebarOpen ? 'gap-3' : 'justify-center'
-              } ${activeTab === 'clients' ? 'bg-[#fff3ee] text-[#ff6a33] font-medium' : 'text-[#666] hover:bg-[#f7f7f7]'}`}
+              } ${activeTab === 'clients' ? 'bg-[#FFF6EC] text-[#F7941D] font-medium' : 'text-[#666] hover:bg-[#f7f7f7]'}`}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5 shrink-0">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -331,7 +332,7 @@ export default function AgencyLogin() {
 
         <div className="min-w-0 flex-1 px-6 py-8 sm:px-10">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Hey there, <span className="text-[#ff6a33]">{agency?.first_name || ''}</span>
+            Hey there, <span className="text-[#F7941D]">{agency?.first_name || ''}</span>
           </h1>
 
           <div className="mt-8 space-y-3">
@@ -405,7 +406,7 @@ export default function AgencyLogin() {
                           type="button"
                           onClick={addRestriction}
                           disabled={!newRestrictionName}
-                          className="rounded-lg bg-[#ff6a33] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#e55a28] disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-lg bg-[#F7941D] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#DE8418] disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Add
                         </button>
@@ -430,7 +431,7 @@ export default function AgencyLogin() {
       style={{ fontFamily: "'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif" }}
     >
       <section className="w-full max-w-[400px] px-6 py-8">
-        <h1 className="mb-1 text-center text-5xl font-black tracking-[-0.02em] text-[#ff6a33]">Hurdl</h1>
+        <h1 className="mb-1 text-center text-5xl font-black tracking-[-0.02em] text-[#F7941D]">Hurdl</h1>
 
         <div className="mb-6">
           {error ? (
@@ -453,7 +454,7 @@ export default function AgencyLogin() {
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
               autoComplete="tel"
-              className="block w-full rounded-[8px] border-[1.5px] border-[#e0e0e0] bg-[#fafafa] px-4 py-3 text-[0.95rem] text-[#1a1a1a] outline-none transition placeholder:text-[#9a9a9a] focus:border-[#ff6a33] focus:ring-[3px] focus:ring-[#ff6a33]/12"
+              className="block w-full rounded-[8px] border-[1.5px] border-[#e0e0e0] bg-[#fafafa] px-4 py-3 text-[0.95rem] text-[#1a1a1a] outline-none transition placeholder:text-[#9a9a9a] focus:border-[#F7941D] focus:ring-[3px] focus:ring-[#F7941D]/12"
               placeholder="(555) 123-4567"
             />
           </div>
@@ -469,7 +470,7 @@ export default function AgencyLogin() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
-              className="block w-full rounded-[8px] border-[1.5px] border-[#e0e0e0] bg-[#fafafa] px-4 py-3 text-[0.95rem] text-[#1a1a1a] outline-none transition placeholder:text-[#9a9a9a] focus:border-[#ff6a33] focus:ring-[3px] focus:ring-[#ff6a33]/12"
+              className="block w-full rounded-[8px] border-[1.5px] border-[#e0e0e0] bg-[#fafafa] px-4 py-3 text-[0.95rem] text-[#1a1a1a] outline-none transition placeholder:text-[#9a9a9a] focus:border-[#F7941D] focus:ring-[3px] focus:ring-[#F7941D]/12"
               placeholder="Enter password"
             />
           </div>
@@ -477,7 +478,7 @@ export default function AgencyLogin() {
           <button
             type="submit"
             disabled={!canSubmit}
-            className="w-full rounded-[8px] bg-[#ff6a33] px-5 py-[0.85rem] text-base font-medium text-white transition hover:bg-[#e55a28] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-[8px] bg-[#F7941D] px-5 py-[0.85rem] text-base font-medium text-white transition hover:bg-[#DE8418] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? 'Logging in...' : 'Login'}
           </button>
