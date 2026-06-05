@@ -38,6 +38,32 @@
   force = true
 
 [[redirects]]
+  from = "/login"
+  to = "https://banded-overcherished-darby.ngrok-free.dev/login"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/email-accounts"
+  to = "https://banded-overcherished-darby.ngrok-free.dev/accounts"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/email-accounts/*"
+  to = "https://banded-overcherished-darby.ngrok-free.dev/accounts/:splat"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/leads"
+  to = "https://banded-overcherished-darby.ngrok-free.dev/lead_emails"
+  status = 200
+  force = true
+[[redirects]]
+  from = "/leads/*"
+  to = "https://banded-overcherished-darby.ngrok-free.dev/lead_emails/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
