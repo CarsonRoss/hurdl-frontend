@@ -15,6 +15,13 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Static form so Netlify's build-time crawler registers "schedule-demo" (the React form submits to it via fetch). -->
+    <form name="schedule-demo" data-netlify="true" netlify-honeypot="bot-field" hidden>
+      <input type="text" name="firstName" />
+      <input type="text" name="lastName" />
+      <input type="email" name="email" />
+      <input type="text" name="bot-field" />
+    </form>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

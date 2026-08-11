@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 import { motion } from 'framer-motion'
 import WavingHandParticles from './WavingHandParticles'
 
@@ -69,6 +69,12 @@ function hslToRgb(h, s, l) {
   return [Math.round(ch(h + 1 / 3) * 255), Math.round(ch(h) * 255), Math.round(ch(h - 1 / 3) * 255)]
 }
 
+function encodeFormData(data) {
+  return Object.keys(data)
+    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`)
+    .join('&')
+}
+
 export default function LavaHero() {
   const canvasRef = useRef(null)
   const sectionThreeRef = useRef(null)
@@ -76,6 +82,34 @@ export default function LavaHero() {
   const lavaRafRef = useRef(0)
   const sizeRef = useRef({ w: 0, h: 0 })
   const currentYear = new Date().getFullYear()
+
+  const [demoForm, setDemoForm] = useState({ firstName: '', lastName: '', email: '' })
+  const [demoStatus, setDemoStatus] = useState('idle') // idle | submitting | success | error
+
+  const handleDemoFieldChange = useCallback((event) => {
+    const { name, value } = event.target
+    setDemoForm((prev) => ({ ...prev, [name]: value }))
+  }, [])
+
+  const handleDemoSubmit = useCallback(
+    async (event) => {
+      event.preventDefault()
+      setDemoStatus('submitting')
+      try {
+        const response = await fetch('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: encodeFormData({ 'form-name': 'schedule-demo', ...demoForm }),
+        })
+        if (!response.ok) throw new Error('Submission failed')
+        setDemoStatus('success')
+        setDemoForm({ firstName: '', lastName: '', email: '' })
+      } catch {
+        setDemoStatus('error')
+      }
+    },
+    [demoForm]
+  )
 
   const handleResize = useCallback(() => {
     const canvas = canvasRef.current
@@ -220,44 +254,77 @@ export default function LavaHero() {
         <div className="mx-auto flex h-[calc(100%-300px)] max-w-6xl items-center justify-center">
           <div className="w-full max-w-xl rounded-2xl border border-[#f8e7b6]/20 bg-[#101010] p-8 shadow-[0_16px_50px_rgba(0,0,0,0.35)] sm:p-10">
             <h2 className="text-3xl font-bold tracking-tight text-[#f8e7b6] sm:text-4xl">Schedule a Demo</h2>
-            <form className="mt-8 space-y-5">
-              <div>
-                <input
-                  id="firstName"
-                  name="firstName"
-                  type="text"
-                  className="mt-2 block w-full rounded-lg border border-[#f8e7b6]/25 bg-[#0c0c0c] px-4 py-3 text-[#f8e7b6] outline-none transition placeholder:text-[#f8e7b6]/35 focus:border-[#f8e7b6]/65 focus:ring-2 focus:ring-[#f8e7b6]/15"
-                  placeholder="First name"
-                />
-              </div>
-
-              <div>
-                <input
-                  id="lastName"
-                  name="lastName"
-                  type="text"
-                  className="mt-2 block w-full rounded-lg border border-[#f8e7b6]/25 bg-[#0c0c0c] px-4 py-3 text-[#f8e7b6] outline-none transition placeholder:text-[#f8e7b6]/35 focus:border-[#f8e7b6]/65 focus:ring-2 focus:ring-[#f8e7b6]/15"
-                  placeholder="Last name"
-                />
-              </div>
-
-              <div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  className="mt-2 block w-full rounded-lg border border-[#f8e7b6]/25 bg-[#0c0c0c] px-4 py-3 text-[#f8e7b6] outline-none transition placeholder:text-[#f8e7b6]/35 focus:border-[#f8e7b6]/65 focus:ring-2 focus:ring-[#f8e7b6]/15"
-                  placeholder="you@agency.com"
-                />
-              </div>
-
-              <button
-                type="button"
-                className="mt-2 w-full rounded-lg border border-[#f8e7b6] bg-[#f8e7b6] px-5 py-3 text-sm font-semibold text-black transition hover:bg-transparent hover:text-[#f8e7b6]"
+            {demoStatus === 'success' ? (
+              <p className="mt-8 text-[#f8e7b6]/80">
+                Thanks! We got your request and will reach out shortly.
+              </p>
+            ) : (
+              <form
+                name="schedule-demo"
+                onSubmit={handleDemoSubmit}
+                className="mt-8 space-y-5"
               >
-                Request Demo
-              </button>
-            </form>
+                <input type="hidden" name="form-name" value="schedule-demo" />
+                <p className="hidden">
+                  <label>
+                    Don&apos;t fill this out: <input name="bot-field" onChange={handleDemoFieldChange} />
+                  </label>
+                </p>
+
+                <div>
+                  <input
+                    id="firstName"
+                    name="firstName"
+                    type="text"
+                    required
+                    value={demoForm.firstName}
+                    onChange={handleDemoFieldChange}
+                    className="mt-2 block w-full rounded-lg border border-[#f8e7b6]/25 bg-[#0c0c0c] px-4 py-3 text-[#f8e7b6] outline-none transition placeholder:text-[#f8e7b6]/35 focus:border-[#f8e7b6]/65 focus:ring-2 focus:ring-[#f8e7b6]/15"
+                    placeholder="First name"
+                  />
+                </div>
+
+                <div>
+                  <input
+                    id="lastName"
+                    name="lastName"
+                    type="text"
+                    required
+                    value={demoForm.lastName}
+                    onChange={handleDemoFieldChange}
+                    className="mt-2 block w-full rounded-lg border border-[#f8e7b6]/25 bg-[#0c0c0c] px-4 py-3 text-[#f8e7b6] outline-none transition placeholder:text-[#f8e7b6]/35 focus:border-[#f8e7b6]/65 focus:ring-2 focus:ring-[#f8e7b6]/15"
+                    placeholder="Last name"
+                  />
+                </div>
+
+                <div>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    required
+                    value={demoForm.email}
+                    onChange={handleDemoFieldChange}
+                    className="mt-2 block w-full rounded-lg border border-[#f8e7b6]/25 bg-[#0c0c0c] px-4 py-3 text-[#f8e7b6] outline-none transition placeholder:text-[#f8e7b6]/35 focus:border-[#f8e7b6]/65 focus:ring-2 focus:ring-[#f8e7b6]/15"
+                    placeholder="you@agency.com"
+                  />
+                </div>
+
+                {demoStatus === 'error' && (
+                  <p className="text-sm text-red-400">
+                    Something went wrong. Please try again.
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={demoStatus === 'submitting'}
+                  className="mt-2 w-full rounded-lg border border-[#f8e7b6] bg-[#f8e7b6] px-5 py-3 text-sm font-semibold text-black transition hover:bg-transparent hover:text-[#f8e7b6] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {demoStatus === 'submitting' ? 'Sending…' : 'Request Demo'}
+                </button>
+              </form>
+            )}
           </div>
         </div>
 
