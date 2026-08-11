@@ -1,4 +1,4 @@
-import LavaHero from './LavaHero'
+import Home from './Home'
 import AgencyLogin from './AgencyLogin'
 
 export default function App() {
@@ -6,5 +6,5 @@ export default function App() {
     return <AgencyLogin />
   }
 
-  return <LavaHero />
+  return <Home />
 }
