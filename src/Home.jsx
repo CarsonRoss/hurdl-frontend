@@ -3,6 +3,7 @@ import {
   AnimatePresence,
   animate,
   motion,
+  useInView,
   useMotionValueEvent,
   useReducedMotion,
   useScroll,
@@ -22,12 +23,13 @@ import {
 
 const ORANGE = '#F89434'
 const NAV_OFFSET = 96
+const EASE_OUT = [0.16, 1, 0.3, 1]
 
 const SERVICES = [
   {
     title: 'Fractional CTO',
     description:
-      "Architecture decisions, vendor evaluation, technical hiring, roadmap planning — the judgment calls, without the full-time hire.",
+      "Architecture decisions, vendor evaluation, technical hiring, or roadmap planning. Hurdl makes the judgment calls without the full-time hire.",
     visual: RadarPulse,
   },
   {
@@ -61,7 +63,7 @@ const STEPS = [
   {
     number: '01',
     title: 'Discovery call',
-    description: "We start with a conversation about the technical problem you're facing. No jargon, no sales pitch.",
+    description: "We start with a conversation about the technical problem you're facing.",
     icon: ChatCircleText,
   },
   {
@@ -73,7 +75,7 @@ const STEPS = [
   {
     number: '03',
     title: 'Build & implement',
-    description: 'We design, build, and ship — whether that’s an AI workflow, a new system, or a full product.',
+    description: 'We design, build, and ship to production.',
     icon: Code,
   },
   {
@@ -103,7 +105,7 @@ function scrollToId(id, shouldReduceMotion) {
 
   const controls = animate(window.scrollY, targetY, {
     duration: 0.9,
-    ease: [0.16, 1, 0.3, 1],
+    ease: EASE_OUT,
     onUpdate: (v) => window.scrollTo({ top: v, behavior: 'instant' }),
   })
 
@@ -162,7 +164,7 @@ function RevealWords({ text, trigger = 'view', baseDelay = 0, viewportMargin = '
                 className="inline-block"
                 initial={{ opacity: 0, y: 20, filter: 'blur(2px)' }}
                 {...revealProps}
-                transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: baseDelay + i * 0.05 }}
+                transition={{ duration: 0.9, ease: EASE_OUT, delay: baseDelay + i * 0.05 }}
               >
                 {word}
                 {' '}
@@ -187,7 +189,7 @@ function NavBar() {
         <a
           href="#schedule-demo"
           onClick={handleScrollTo('schedule-demo')}
-          className="group inline-flex items-center gap-2 rounded-full bg-[#F89434] py-2 pl-4 pr-1.5 text-sm font-semibold text-white transition-transform active:scale-[0.97]"
+          className="group inline-flex items-center gap-2 rounded-full bg-[#F89434] py-2 pl-4 pr-1.5 text-sm font-semibold text-[#0a0a0a] transition-transform active:scale-[0.97]"
         >
           Schedule a Call
           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 transition-transform duration-300 ease-out group-hover:translate-x-0.5">
@@ -227,23 +229,23 @@ function Hero() {
       <motion.p
         initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
         animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: 'easeOut', delay: .3 }}
+        transition={{ duration: 0.7, ease: EASE_OUT, delay: .3 }}
         className="relative mt-6 max-w-xl text-base leading-7 text-black/55 sm:text-lg"
       >
         Hurdl is your fractional CTO. We implement AI, build custom software, and make the
-        technical calls so a technical problem never becomes a reason to stall.
+        technical calls, so nothing stalls.
       </motion.p>
 
       <motion.div
         initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
         animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: 'easeOut', delay: .4 }}
+        transition={{ duration: 0.7, ease: EASE_OUT, delay: .4 }}
         className="relative mt-10 flex flex-col items-center gap-4 sm:flex-row"
       >
         <a
           href="#schedule-demo"
           onClick={handleScrollTo('schedule-demo')}
-          className="group inline-flex items-center gap-2 rounded-full bg-[#F89434] py-3 pl-6 pr-2.5 text-sm font-semibold text-white transition-transform active:scale-[0.98]"
+          className="group inline-flex items-center gap-2 rounded-full bg-[#F89434] py-3 pl-6 pr-2.5 text-sm font-semibold text-[#0a0a0a] transition-transform active:scale-[0.98]"
         >
           Schedule a Call
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 transition-transform duration-300 ease-out group-hover:translate-x-0.5">
@@ -287,16 +289,17 @@ function About() {
           initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
           whileInView={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-15% 0px' }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.7, ease: EASE_OUT }}
         >
           <h2 className="mt-4 text-[clamp(1.85rem,3.6vw,2.75rem)] font-black leading-[1.08] tracking-[-0.02em]">
             <RevealWords text={'You don\'t need a full engineering team.\nYou need the right technical partner.'} />
           </h2>
           <p className="mt-5 max-w-md text-[15px] leading-7 text-black/55">
-            Most businesses hit a wall where the next step needs real technical judgment —
-            evaluating AI, architecting a new system, shipping custom software — but a full-time
-            CTO or engineering team isn&apos;t the right move yet. Hurdl steps in as that partner:
-            embedded enough to make real decisions, senior enough to be trusted with them.
+            Most businesses hit a wall where the next step needs real technical judgment:
+            evaluating AI, architecting a new system, shipping custom software. But hiring a
+            full-time CTO or engineering team isn&apos;t the right move yet. Hurdl steps in as
+            that partner, embedded enough to make real decisions and senior enough to be trusted
+            with them.
           </p>
         </motion.div>
 
@@ -307,7 +310,7 @@ function About() {
               initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
               whileInView={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-15% 0px' }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: i * 0.08 }}
+              transition={{ duration: 0.6, ease: EASE_OUT, delay: i * 0.08 }}
               className="border-l-2 border-black/[0.08] pl-5"
             >
               <h3 className="text-base font-bold tracking-tight">{value.title}</h3>
@@ -322,10 +325,13 @@ function About() {
 
 function RadarPulse() {
   const shouldReduceMotion = useReducedMotion()
+  const containerRef = useRef(null)
+  const isInView = useInView(containerRef, { margin: '100px' })
+  const skip = shouldReduceMotion || !isInView
 
   return (
-    <div className="relative flex h-full w-full items-center justify-center">
-      {!shouldReduceMotion &&
+    <div ref={containerRef} className="relative flex h-full w-full items-center justify-center">
+      {!skip &&
         [0, 0.7, 1.4].map((delay, i) => (
           <motion.span
             key={i}
@@ -350,16 +356,18 @@ const AI_LINES = ['Analyzing workflow…', 'Mapping automation points…', 'Depl
 
 function ConsoleFeed() {
   const shouldReduceMotion = useReducedMotion()
+  const containerRef = useRef(null)
+  const isInView = useInView(containerRef, { margin: '100px' })
   const [i, setI] = useState(0)
 
   useEffect(() => {
-    if (shouldReduceMotion) return
+    if (shouldReduceMotion || !isInView) return
     const id = setInterval(() => setI((v) => (v + 1) % AI_LINES.length), 1900)
     return () => clearInterval(id)
-  }, [shouldReduceMotion])
+  }, [shouldReduceMotion, isInView])
 
   return (
-    <div className="flex h-full w-full flex-col justify-center gap-2 px-6">
+    <div ref={containerRef} className="flex h-full w-full flex-col justify-center gap-2 px-6">
       <div className="flex items-center gap-1.5">
         <span className="h-2 w-2 rounded-full bg-black/15" />
         <span className="h-2 w-2 rounded-full bg-black/15" />
@@ -375,7 +383,7 @@ function ConsoleFeed() {
             initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.4, ease: EASE_OUT }}
             className="inline-flex items-center gap-1"
           >
             {AI_LINES[i]}
@@ -395,9 +403,11 @@ const CODE_LINES = [
 
 function CodeTyping() {
   const shouldReduceMotion = useReducedMotion()
+  const containerRef = useRef(null)
+  const isInView = useInView(containerRef, { margin: '100px' })
 
   return (
-    <div className="flex h-full w-full flex-col justify-center gap-1.5 px-6 font-mono text-[12.5px]">
+    <div ref={containerRef} className="flex h-full w-full flex-col justify-center gap-1.5 px-6 font-mono text-[12.5px]">
       {CODE_LINES.map((line, i) => (
         <div key={i} className="overflow-hidden">
           <motion.div
@@ -408,9 +418,9 @@ function CodeTyping() {
             transition={{
               duration: 0.7,
               delay: 0.3 + i * 0.5,
-              repeat: Infinity,
+              repeat: shouldReduceMotion || !isInView ? 0 : Infinity,
               repeatDelay: 2.6,
-              ease: [0.16, 1, 0.3, 1],
+              ease: EASE_OUT,
             }}
           >
             {line.text}
@@ -423,17 +433,20 @@ function CodeTyping() {
 
 function StackLayers() {
   const shouldReduceMotion = useReducedMotion()
+  const containerRef = useRef(null)
+  const isInView = useInView(containerRef, { margin: '100px' })
+  const skip = shouldReduceMotion || !isInView
   const layers = [0, 1, 2]
 
   return (
-    <div className="relative flex h-full w-full items-center justify-center">
+    <div ref={containerRef} className="relative flex h-full w-full items-center justify-center">
       {layers.map((i) => (
         <motion.div
           key={i}
           className="absolute h-20 w-32 rounded-xl border border-black/[0.06] bg-white"
           style={{ zIndex: layers.length - i, boxShadow: '0 14px 30px -18px rgba(0,0,0,0.3)' }}
           initial={{ y: i * 11, opacity: 1 - i * 0.15 }}
-          animate={shouldReduceMotion ? {} : { y: [i * 11, i * 11 - 7, i * 11] }}
+          animate={skip ? {} : { y: [i * 11, i * 11 - 7, i * 11] }}
           transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: i * 0.3 }}
         />
       ))}
@@ -450,23 +463,22 @@ const DILIGENCE_ITEMS = [
 
 function ChecklistChips() {
   const shouldReduceMotion = useReducedMotion()
+  const containerRef = useRef(null)
+  const isInView = useInView(containerRef, { margin: '100px' })
+  const skip = shouldReduceMotion || !isInView
 
   return (
-    <div className="relative h-full w-full">
+    <div ref={containerRef} className="relative h-full w-full">
       {DILIGENCE_ITEMS.map((item, i) => (
         <motion.div
           key={item.label}
           className={`absolute flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-3 py-1.5 text-[11.5px] font-medium text-black/70 ${item.className}`}
           style={{ boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.06), 0 10px 25px -14px rgba(0,0,0,0.3)' }}
           initial={{ opacity: 0, y: 8 }}
-          animate={
-            shouldReduceMotion
-              ? { opacity: 1, y: 0 }
-              : { opacity: [0, 1, 1, 0], y: [8, 0, 0, -6] }
-          }
+          animate={skip ? { opacity: 1, y: 0 } : { opacity: [0, 1, 1, 0], y: [8, 0, 0, -6] }}
           transition={{
             duration: 3.6,
-            repeat: shouldReduceMotion ? 0 : Infinity,
+            repeat: skip ? 0 : Infinity,
             times: [0, 0.18, 0.8, 1],
             delay: i * 0.85,
             ease: 'easeInOut',
@@ -482,10 +494,13 @@ function ChecklistChips() {
 
 function HandshakeShake() {
   const shouldReduceMotion = useReducedMotion()
+  const containerRef = useRef(null)
+  const isInView = useInView(containerRef, { margin: '100px' })
+  const skip = shouldReduceMotion || !isInView
 
   return (
-    <div className="relative flex h-full w-full flex-col items-center justify-center gap-4">
-      {!shouldReduceMotion &&
+    <div ref={containerRef} className="relative flex h-full w-full flex-col items-center justify-center gap-4">
+      {!skip &&
         [0, 1].map((delay, i) => (
           <motion.span
             key={i}
@@ -499,14 +514,14 @@ function HandshakeShake() {
       <motion.div
         className="relative flex h-12 w-12 items-center justify-center rounded-full"
         style={{ background: 'rgba(248,148,52,0.12)', color: ORANGE }}
-        animate={shouldReduceMotion ? {} : { y: [0, -5, 0, -5, 0], rotate: [0, -6, 4, -6, 0] }}
+        animate={skip ? {} : { y: [0, -5, 0, -5, 0], rotate: [0, -6, 4, -6, 0] }}
         transition={{ duration: 1.3, repeat: Infinity, repeatDelay: 1, ease: 'easeInOut' }}
       >
         <Handshake size={22} weight="bold" />
       </motion.div>
       <motion.div
         className="h-1.5 w-8 rounded-full bg-black/10"
-        animate={shouldReduceMotion ? {} : { scaleX: [1, 0.7, 1, 0.7, 1], opacity: [0.45, 0.25, 0.45, 0.25, 0.45] }}
+        animate={skip ? {} : { scaleX: [1, 0.7, 1, 0.7, 1], opacity: [0.45, 0.25, 0.45, 0.25, 0.45] }}
         transition={{ duration: 1.3, repeat: Infinity, repeatDelay: 1, ease: 'easeInOut' }}
       />
     </div>
@@ -522,7 +537,7 @@ function ServiceCard({ service, index }) {
       initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
       whileInView={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-10% 0px' }}
-      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: (index % 3) * 0.08 }}
+      transition={{ duration: 0.6, ease: EASE_OUT, delay: (index % 3) * 0.08 }}
       className="group relative flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-black/[0.07] bg-white shadow-[0_20px_45px_-30px_rgba(0,0,0,0.15)] transition-[box-shadow,border-color] duration-300 hover:border-[#F89434]/30 hover:shadow-[0_25px_60px_-25px_rgba(248,148,52,0.35)]"
     >
       <div className="relative h-36 shrink-0 overflow-hidden border-b border-black/[0.06] bg-[#fbfbfa] sm:h-40">
@@ -550,7 +565,7 @@ function Services() {
         initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
         whileInView={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-15% 0px' }}
-        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.7, ease: EASE_OUT }}
         className="mb-14 max-w-xl"
       >
         <h2 className="mt-4 text-[clamp(2rem,4.5vw,3.25rem)] font-black leading-[1.05] tracking-[-0.02em]">
@@ -565,6 +580,8 @@ function Services() {
 
 function ServiceCarousel() {
   const scrollerRef = useRef(null)
+  const isScrollingRef = useRef(false)
+  const shouldReduceMotion = useReducedMotion()
   const [progress, setProgress] = useState(0)
 
   const updateProgress = useCallback(() => {
@@ -589,11 +606,22 @@ function ServiceCarousel() {
 
   const scrollByCard = (dir) => {
     const el = scrollerRef.current
-    if (!el) return
+    if (!el || isScrollingRef.current) return
     const card = el.querySelector('[data-carousel-card]')
     const amount = card ? card.getBoundingClientRect().width + 20 : 320
-    el.scrollBy({ left: dir * amount, behavior: 'smooth' })
+
+    isScrollingRef.current = true
+    const clearFlag = () => {
+      isScrollingRef.current = false
+    }
+    el.addEventListener('scrollend', clearFlag, { once: true })
+    window.setTimeout(clearFlag, 700) // fallback for browsers without `scrollend`
+
+    el.scrollBy({ left: dir * amount, behavior: shouldReduceMotion ? 'instant' : 'smooth' })
   }
+
+  const canScrollPrev = progress > 0.02
+  const canScrollNext = progress < 0.98
 
   return (
     <div>
@@ -611,8 +639,8 @@ function ServiceCarousel() {
       <div className="mt-7 flex items-center gap-4">
         <div className="relative h-[3px] flex-1 overflow-hidden rounded-full bg-black/[0.08]">
           <motion.div
-            className="absolute inset-y-0 left-0 rounded-full bg-[#F89434]"
-            animate={{ width: `${Math.max(progress * 100, 8)}%` }}
+            className="absolute inset-y-0 left-0 w-full origin-left rounded-full bg-[#F89434]"
+            animate={{ scaleX: Math.max(progress, 0.08) }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
           />
         </div>
@@ -620,16 +648,18 @@ function ServiceCarousel() {
           <button
             type="button"
             onClick={() => scrollByCard(-1)}
+            disabled={!canScrollPrev}
             aria-label="Previous"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-black/10 text-black/60 transition-colors hover:border-[#F89434]/40 hover:text-[#F89434]"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-black/10 text-black/60 transition-[color,border-color,opacity] duration-200 hover:border-[#F89434]/40 hover:text-[#F89434] disabled:pointer-events-none disabled:opacity-30"
           >
             <CaretLeft size={16} weight="bold" />
           </button>
           <button
             type="button"
             onClick={() => scrollByCard(1)}
+            disabled={!canScrollNext}
             aria-label="Next"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-black/10 text-black/60 transition-colors hover:border-[#F89434]/40 hover:text-[#F89434]"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-black/10 text-black/60 transition-[color,border-color,opacity] duration-200 hover:border-[#F89434]/40 hover:text-[#F89434] disabled:pointer-events-none disabled:opacity-30"
           >
             <CaretRight size={16} weight="bold" />
           </button>
@@ -649,7 +679,7 @@ function StepCard({ step, isLit }) {
       initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 32, filter: 'blur(6px)' }}
       whileInView={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, filter: 'blur(0px)' }}
       viewport={{ once: true, margin: '-15% 0px -15% 0px' }}
-      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.7, ease: EASE_OUT }}
     >
       <div
         className="absolute left-0 top-0 flex h-8 w-8 items-center justify-center rounded-full border transition-[background-color,border-color,box-shadow] duration-300 ease-out sm:h-10 sm:w-10"
@@ -696,9 +726,6 @@ function HowWeWork() {
   return (
     <section id="how-we-work" ref={sectionRef} className="relative mx-auto max-w-3xl scroll-mt-24 px-6 py-32 sm:px-8 md:py-40">
       <div className="mb-20 max-w-xl">
-        <span className="inline-flex items-center rounded-full border border-black/10 bg-black/[0.03] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-black/50">
-          How We Work
-        </span>
         <h2 className="mt-4 text-[clamp(2rem,4.5vw,3.25rem)] font-black leading-[1.05] tracking-[-0.02em]">
           <RevealWords text={'One call starts it.\nHurdl carries it through.'} />
         </h2>
@@ -737,7 +764,7 @@ function DemoSection({ demoForm, demoStatus, onFieldChange, onSubmit, successEnt
                   key="success"
                   initial={{ opacity: 0, y: successEnterY }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                  transition={{ duration: 0.3, ease: EASE_OUT }}
                   className="py-6 text-center text-black/70"
                 >
                   Thanks! We got your request and will reach out shortly.
@@ -746,7 +773,7 @@ function DemoSection({ demoForm, demoStatus, onFieldChange, onSubmit, successEnt
                 <motion.form
                   key="form"
                   exit={{ opacity: 0, y: formExitY }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                  transition={{ duration: 0.2, ease: EASE_OUT }}
                   name="schedule-demo"
                   onSubmit={onSubmit}
                   className="space-y-4"
@@ -797,16 +824,26 @@ function DemoSection({ demoForm, demoStatus, onFieldChange, onSubmit, successEnt
                     />
                   </div>
 
-                  {demoStatus === 'error' && (
-                    <p className="text-sm text-red-500">Something went wrong. Please try again.</p>
-                  )}
+                  <AnimatePresence>
+                    {demoStatus === 'error' && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.25, ease: EASE_OUT }}
+                        className="text-sm text-red-500"
+                      >
+                        Something went wrong. Please try again.
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
 
                   <button
                     type="submit"
                     disabled={demoStatus === 'submitting'}
-                    className="mt-2 w-full rounded-full bg-[#F89434] py-3.5 text-sm font-semibold text-white transition hover:bg-[#E0841E] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-2 w-full rounded-full bg-[#F89434] py-3.5 text-sm font-semibold text-[#0a0a0a] transition hover:bg-[#E0841E] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {demoStatus === 'submitting' ? 'Sending…' : 'Request Demo'}
+                    {demoStatus === 'submitting' ? 'Sending…' : 'Schedule Call'}
                   </button>
                 </motion.form>
               )}
@@ -820,10 +857,17 @@ function DemoSection({ demoForm, demoStatus, onFieldChange, onSubmit, successEnt
 
 function Footer() {
   const currentYear = new Date().getFullYear()
+  const shouldReduceMotion = useReducedMotion()
 
   return (
     <footer className="relative overflow-hidden border-t border-black/[0.06] bg-white">
-      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-6 py-14 text-sm text-black/55 sm:grid-cols-4 sm:px-8">
+      <motion.div
+        initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
+        whileInView={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-10% 0px' }}
+        transition={{ duration: 0.6, ease: EASE_OUT }}
+        className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-6 py-14 text-sm text-black/55 sm:grid-cols-4 sm:px-8"
+      >
         <div className="col-span-2 sm:col-span-1">
           <img src="/hurdl_logo.png" alt="Hurdl" className="h-7 w-auto" />
           <p className="mt-3 leading-6">Technical expertise, on demand.</p>
@@ -840,7 +884,7 @@ function Footer() {
         <div className="sm:text-right">
           <p>&copy; {currentYear} Hurdl</p>
         </div>
-      </div>
+      </motion.div>
       <p className="pointer-events-none -mt-4 select-none text-center text-[22vw] font-black leading-[0.7] tracking-tight text-black/[0.03] sm:text-[16vw]">
         Hurdl
       </p>

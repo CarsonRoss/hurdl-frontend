@@ -78,6 +78,23 @@ function restrictionLabel(name, types) {
   return type.category ? `${name} (${type.category})` : name
 }
 
+function FadeInBanner({ children, className }) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+  return (
+    <p
+      className={`${className} transition-[opacity,transform] duration-200 ease-out ${
+        mounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'
+      }`}
+    >
+      {children}
+    </p>
+  )
+}
+
 export default function AgencyLogin() {
   const loginUrl = useMemo(resolveLoginUrl, [])
   const cached = useMemo(loadSession, [])
@@ -374,62 +391,68 @@ export default function AgencyLogin() {
                     </svg>
                   </button>
 
-                  {isExpanded && (
-                    <div className="space-y-4 border-t border-[#ececec] px-5 py-4">
-                      <div className="space-y-2">
-                        {(person.restrictions || []).map((entry) => (
-                          <div
-                            key={entry.name}
-                            className="flex items-start justify-between gap-3 rounded-lg bg-[#f7f7f7] px-3 py-2.5"
-                          >
-                            <div>
-                              <p className="text-sm">{restrictionLabel(entry.name, restrictionTypes)}</p>
-                              {entry.notes ? <p className="mt-0.5 text-xs text-[#888]">{entry.notes}</p> : null}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeRestriction(entry.name)}
-                              className="shrink-0 text-xs text-[#b13d18] hover:underline"
+                  <div
+                    className={`grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                      isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+                    }`}
+                  >
+                    <div className="overflow-hidden">
+                      <div className="space-y-4 border-t border-[#ececec] px-5 py-4">
+                        <div className="space-y-2">
+                          {(person.restrictions || []).map((entry) => (
+                            <div
+                              key={entry.name}
+                              className="flex items-start justify-between gap-3 rounded-lg bg-[#f7f7f7] px-3 py-2.5"
                             >
-                              Remove
-                            </button>
-                          </div>
-                        ))}
-                        {(person.restrictions || []).length === 0 ? (
-                          <p className="text-xs text-[#999]">No restrictions yet.</p>
-                        ) : null}
-                      </div>
-
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                        <select
-                          className="flex-1 rounded-lg border border-[#dfdfdf] bg-white px-3 py-2 text-sm"
-                          value={newRestrictionName}
-                          onChange={(e) => setNewRestrictionName(e.target.value)}
-                        >
-                          <option value="">Add a restriction...</option>
-                          {availableRestrictions.map((type) => (
-                            <option key={type.id} value={type.name}>
-                              {restrictionLabel(type.name, restrictionTypes)}
-                            </option>
+                              <div>
+                                <p className="text-sm">{restrictionLabel(entry.name, restrictionTypes)}</p>
+                                {entry.notes ? <p className="mt-0.5 text-xs text-[#888]">{entry.notes}</p> : null}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeRestriction(entry.name)}
+                                className="shrink-0 text-xs text-[#b13d18] hover:underline"
+                              >
+                                Remove
+                              </button>
+                            </div>
                           ))}
-                        </select>
-                        <input
-                          className="rounded-lg border border-[#dfdfdf] bg-white px-3 py-2 text-sm sm:flex-1"
-                          placeholder="Notes (optional)"
-                          value={restrictionNotes}
-                          onChange={(e) => setRestrictionNotes(e.target.value)}
-                        />
-                        <button
-                          type="button"
-                          onClick={addRestriction}
-                          disabled={!newRestrictionName}
-                          className="rounded-lg bg-[#F89434] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#E0841E] disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          Add
-                        </button>
+                          {(person.restrictions || []).length === 0 ? (
+                            <p className="text-xs text-[#999]">No restrictions yet.</p>
+                          ) : null}
+                        </div>
+
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                          <select
+                            className="flex-1 rounded-lg border border-[#dfdfdf] bg-white px-3 py-2 text-sm"
+                            value={newRestrictionName}
+                            onChange={(e) => setNewRestrictionName(e.target.value)}
+                          >
+                            <option value="">Add a restriction...</option>
+                            {availableRestrictions.map((type) => (
+                              <option key={type.id} value={type.name}>
+                                {restrictionLabel(type.name, restrictionTypes)}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            className="rounded-lg border border-[#dfdfdf] bg-white px-3 py-2 text-sm sm:flex-1"
+                            placeholder="Notes (optional)"
+                            value={restrictionNotes}
+                            onChange={(e) => setRestrictionNotes(e.target.value)}
+                          />
+                          <button
+                            type="button"
+                            onClick={addRestriction}
+                            disabled={!newRestrictionName}
+                            className="rounded-lg bg-[#F89434] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#E0841E] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Add
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               )
             })}
@@ -452,10 +475,14 @@ export default function AgencyLogin() {
 
         <div className="mb-6">
           {error ? (
-            <p className="rounded-lg border border-[#f5c6cb] bg-[#fdecea] px-4 py-3 text-[0.85rem] text-[#c0392b]">{error}</p>
+            <FadeInBanner className="rounded-lg border border-[#f5c6cb] bg-[#fdecea] px-4 py-3 text-[0.85rem] text-[#c0392b]">
+              {error}
+            </FadeInBanner>
           ) : null}
           {success ? (
-            <p className="rounded-lg border border-[#b7e1a1] bg-[#eafbe7] px-4 py-3 text-[0.85rem] text-[#1a7f37]">{success}</p>
+            <FadeInBanner className="rounded-lg border border-[#b7e1a1] bg-[#eafbe7] px-4 py-3 text-[0.85rem] text-[#1a7f37]">
+              {success}
+            </FadeInBanner>
           ) : null}
         </div>
 

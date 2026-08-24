@@ -1,12 +1,18 @@
 # 001 — Cross-fade the demo form into its success message
 
-- **Status**: TODO
+- **Status**: DONE (reconciled 2026-08-24)
 - **Commit**: d0407ad
 - **Severity**: MEDIUM
 - **Category**: Missed opportunity (Purpose: preventing a jarring change)
 - **Estimated scope**: 1 file (`src/LavaHero.jsx`), one JSX block + one import line + one hook call
 
-## Problem
+> **Reconciliation note**: `src/LavaHero.jsx` no longer exists — the site was restructured into
+> `src/Home.jsx` in a later redesign. The fix described below is already implemented, in
+> `src/Home.jsx:731-810`: `DemoSection` wraps the form/success swap in
+> `<AnimatePresence mode="wait">` with `motion.p`/`motion.form` enter/exit transitions. No action
+> needed. (Its error-state sibling was *not* covered by this fix — see plan 010.)
+
+## Problem (as originally written, kept for history)
 
 On successful demo-request submission, `LavaHero.jsx` swaps the entire form for a thank-you
 message via a plain ternary. React unmounts the `<form>` and mounts the `<p>` in the same
