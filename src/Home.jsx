@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   AnimatePresence,
   animate,
@@ -11,8 +11,6 @@ import {
 } from 'framer-motion'
 import {
   ArrowUpRight,
-  CaretLeft,
-  CaretRight,
   ChatCircleText,
   CheckCircle,
   MagnifyingGlass,
@@ -578,93 +576,113 @@ function Services() {
   )
 }
 
+const CAROUSEL_DRIFT_PX_PER_SEC = 28
+
 function ServiceCarousel() {
   const scrollerRef = useRef(null)
-  const isScrollingRef = useRef(false)
+  const isPausedRef = useRef(false) // true while the user is hovering/touching/dragging the strip
+  const setWidthRef = useRef(0) // px width of one (of three) copies of SERVICES
   const shouldReduceMotion = useReducedMotion()
-  const [progress, setProgress] = useState(0)
 
-  const updateProgress = useCallback(() => {
+  const measureSetWidth = useCallback(() => {
+    const el = scrollerRef.current
+    if (!el) return 0
+    const width = el.scrollWidth / 3
+    setWidthRef.current = width
+    return width
+  }, [])
+
+  // Start in the middle copy so there's a full copy's worth of room to drift
+  // or drag in either direction before a wrap is needed.
+  useLayoutEffect(() => {
     const el = scrollerRef.current
     if (!el) return
-    const max = el.scrollWidth - el.clientWidth
-    setProgress(max > 0 ? el.scrollLeft / max : 0)
+    const width = measureSetWidth()
+    el.scrollLeft = width
+
+    const onResize = () => {
+      const prevWidth = setWidthRef.current
+      const lapFraction = prevWidth > 0 ? (el.scrollLeft - prevWidth) / prevWidth : 0
+      const nextWidth = measureSetWidth()
+      el.scrollLeft = nextWidth + lapFraction * nextWidth
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [measureSetWidth])
+
+  // Pause the auto-drift while the user is actively touching/dragging/hovering the strip.
+  useEffect(() => {
+    const el = scrollerRef.current
+    if (!el) return
+    const pause = () => {
+      isPausedRef.current = true
+    }
+    const resume = () => {
+      isPausedRef.current = false
+    }
+    el.addEventListener('pointerdown', pause)
+    el.addEventListener('pointerup', resume)
+    el.addEventListener('pointercancel', resume)
+    el.addEventListener('mouseenter', pause)
+    el.addEventListener('mouseleave', resume)
+    return () => {
+      el.removeEventListener('pointerdown', pause)
+      el.removeEventListener('pointerup', resume)
+      el.removeEventListener('pointercancel', resume)
+      el.removeEventListener('mouseenter', pause)
+      el.removeEventListener('mouseleave', resume)
+    }
+  }, [])
+
+  // Silently wrap scrollLeft between the tripled copies to fake an infinite loop —
+  // covers auto-drift as well as the user dragging/scrolling the strip directly.
+  const wrapScrollPosition = useCallback(() => {
+    const el = scrollerRef.current
+    const width = setWidthRef.current
+    if (!el || !width) return
+    if (el.scrollLeft >= width * 2) {
+      el.scrollLeft -= width
+    } else if (el.scrollLeft < width) {
+      el.scrollLeft += width
+    }
   }, [])
 
   useEffect(() => {
     const el = scrollerRef.current
     if (!el) return
-    const raf = requestAnimationFrame(updateProgress)
-    el.addEventListener('scroll', updateProgress, { passive: true })
-    window.addEventListener('resize', updateProgress)
-    return () => {
-      cancelAnimationFrame(raf)
-      el.removeEventListener('scroll', updateProgress)
-      window.removeEventListener('resize', updateProgress)
+
+    if (shouldReduceMotion) {
+      el.addEventListener('scroll', wrapScrollPosition, { passive: true })
+      return () => el.removeEventListener('scroll', wrapScrollPosition)
     }
-  }, [updateProgress])
 
-  const scrollByCard = (dir) => {
-    const el = scrollerRef.current
-    if (!el || isScrollingRef.current) return
-    const card = el.querySelector('[data-carousel-card]')
-    const amount = card ? card.getBoundingClientRect().width + 20 : 320
-
-    isScrollingRef.current = true
-    const clearFlag = () => {
-      isScrollingRef.current = false
+    let rafId
+    let last = performance.now()
+    const tick = (now) => {
+      const dt = (now - last) / 1000
+      last = now
+      if (!isPausedRef.current) {
+        el.scrollLeft += CAROUSEL_DRIFT_PX_PER_SEC * dt
+      }
+      wrapScrollPosition()
+      rafId = requestAnimationFrame(tick)
     }
-    el.addEventListener('scrollend', clearFlag, { once: true })
-    window.setTimeout(clearFlag, 700) // fallback for browsers without `scrollend`
-
-    el.scrollBy({ left: dir * amount, behavior: shouldReduceMotion ? 'instant' : 'smooth' })
-  }
-
-  const canScrollPrev = progress > 0.02
-  const canScrollNext = progress < 0.98
+    rafId = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafId)
+  }, [shouldReduceMotion, wrapScrollPosition])
 
   return (
-    <div>
-      <div
-        ref={scrollerRef}
-        className="flex snap-x snap-mandatory gap-5 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {SERVICES.map((service, i) => (
-          <div key={service.title} data-carousel-card className="w-[78vw] shrink-0 snap-start sm:w-[340px]">
+    <div
+      ref={scrollerRef}
+      className="flex gap-5 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
+      {[0, 1, 2].flatMap((copy) =>
+        SERVICES.map((service, i) => (
+          <div key={`${copy}-${service.title}`} className="w-[78vw] shrink-0 sm:w-[340px]">
             <ServiceCard service={service} index={i} />
           </div>
-        ))}
-      </div>
-
-      <div className="mt-7 flex items-center gap-4">
-        <div className="relative h-[3px] flex-1 overflow-hidden rounded-full bg-black/[0.08]">
-          <motion.div
-            className="absolute inset-y-0 left-0 w-full origin-left rounded-full bg-[#F89434]"
-            animate={{ scaleX: Math.max(progress, 0.08) }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-          />
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <button
-            type="button"
-            onClick={() => scrollByCard(-1)}
-            disabled={!canScrollPrev}
-            aria-label="Previous"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-black/10 text-black/60 transition-[color,border-color,opacity] duration-200 hover:border-[#F89434]/40 hover:text-[#F89434] disabled:pointer-events-none disabled:opacity-30"
-          >
-            <CaretLeft size={16} weight="bold" />
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollByCard(1)}
-            disabled={!canScrollNext}
-            aria-label="Next"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-black/10 text-black/60 transition-[color,border-color,opacity] duration-200 hover:border-[#F89434]/40 hover:text-[#F89434] disabled:pointer-events-none disabled:opacity-30"
-          >
-            <CaretRight size={16} weight="bold" />
-          </button>
-        </div>
-      </div>
+        ))
+      )}
     </div>
   )
 }
@@ -820,7 +838,7 @@ function DemoSection({ demoForm, demoStatus, onFieldChange, onSubmit, successEnt
                       value={demoForm.email}
                       onChange={onFieldChange}
                       className="block w-full rounded-xl border border-black/10 bg-[#fafafa] px-4 py-3 text-[#0a0a0a] outline-none transition placeholder:text-black/35 focus:border-[#F89434] focus:ring-2 focus:ring-[#F89434]/15"
-                      placeholder="you@agency.com"
+                      placeholder="example@gmail.com"
                     />
                   </div>
 
