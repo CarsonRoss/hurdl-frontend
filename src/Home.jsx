@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   AnimatePresence,
   animate,
@@ -8,37 +8,79 @@ import {
   useScroll,
   useSpring,
 } from 'framer-motion'
-import { ArrowUpRight, Broadcast, CalendarCheck, ChatCircleText, CheckCircle } from '@phosphor-icons/react'
+import {
+  ArrowUpRight,
+  CaretLeft,
+  CaretRight,
+  ChatCircleText,
+  CheckCircle,
+  MagnifyingGlass,
+  Code,
+  Handshake,
+  Compass,
+} from '@phosphor-icons/react'
 
 const ORANGE = '#F89434'
 const NAV_OFFSET = 96
 
+const SERVICES = [
+  {
+    title: 'Fractional CTO',
+    description:
+      "Architecture decisions, vendor evaluation, technical hiring, roadmap planning — the judgment calls, without the full-time hire.",
+    visual: RadarPulse,
+  },
+  {
+    title: 'AI Implementation',
+    description: 'We integrate AI into your existing workflows so it actually moves the needle, not just a chatbot bolted on.',
+    visual: ConsoleFeed,
+  },
+  {
+    title: 'Custom Software',
+    description: 'When off-the-shelf software doesn’t cut it, we design and build the product that gets you the outcome.',
+    visual: CodeTyping,
+  },
+  {
+    title: 'Architecture & Systems Design',
+    description: 'A technical foundation that scales with the business instead of fighting it.',
+    visual: StackLayers,
+  },
+  {
+    title: 'Technical Due Diligence',
+    description: 'A second, senior opinion before you buy software, hire a vendor, or sign the contract.',
+    visual: ChecklistChips,
+  },
+  {
+    title: 'Ongoing Partnership',
+    description: 'We stay embedded as your technical advisor, so the next hard decision doesn’t stall the business.',
+    visual: HandshakeShake,
+  },
+]
+
 const STEPS = [
   {
     number: '01',
-    title: 'The call-out',
-    description: "A caregiver can't make their shift, so they text their operating director directly. No separate app to open.",
+    title: 'Discovery call',
+    description: "We start with a conversation about the technical problem you're facing. No jargon, no sales pitch.",
     icon: ChatCircleText,
   },
   {
     number: '02',
-    title: 'Hurdl takes over',
-    description:
-      'The moment the OD gets that text, Hurdl engages automatically, texting every qualifying caregiver in the network to find coverage.',
-    icon: Broadcast,
+    title: 'Technical audit',
+    description: "We assess what you have, what's missing, and where AI or custom software actually moves the needle.",
+    icon: MagnifyingGlass,
   },
   {
     number: '03',
-    title: 'Coverage confirmed',
-    description: 'The first caregiver who can help replies yes, and Hurdl locks them in for the shift.',
-    icon: CheckCircle,
+    title: 'Build & implement',
+    description: 'We design, build, and ship — whether that’s an AI workflow, a new system, or a full product.',
+    icon: Code,
   },
   {
     number: '04',
-    title: 'Hands-off, start to finish',
-    description:
-      "Hurdl assigns the caregiver in your scheduling software and texts the OD that it's filled. No calls, no spreadsheets.",
-    icon: CalendarCheck,
+    title: 'Ongoing partnership',
+    description: "We stay on as your technical advisor, so the next decision doesn't stall the business again.",
+    icon: Handshake,
   },
 ]
 
@@ -85,6 +127,54 @@ function useScrollLink() {
   )
 }
 
+function RevealWords({ text, trigger = 'view', baseDelay = 0, viewportMargin = '-15% 0px', className }) {
+  const shouldReduceMotion = useReducedMotion()
+
+  if (shouldReduceMotion) {
+    return (
+      <span className={className}>
+        {text.split('\n').map((line, i) => (
+          <span key={i} className="block">
+            {line}
+          </span>
+        ))}
+      </span>
+    )
+  }
+
+  const lines = text.split('\n')
+  let wordIndex = 0
+
+  const revealProps =
+    trigger === 'mount'
+      ? { animate: { opacity: 1, y: 0, filter: 'blur(0px)' } }
+      : { whileInView: { opacity: 1, y: 0, filter: 'blur(0px)' }, viewport: { once: true, margin: viewportMargin } }
+
+  return (
+    <span className={className}>
+      {lines.map((line, li) => (
+        <span key={li} className="block">
+          {line.split(' ').map((word) => {
+            const i = wordIndex++
+            return (
+              <motion.span
+                key={i}
+                className="inline-block"
+                initial={{ opacity: 0, y: 20, filter: 'blur(2px)' }}
+                {...revealProps}
+                transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: baseDelay + i * 0.05 }}
+              >
+                {word}
+                {' '}
+              </motion.span>
+            )
+          })}
+        </span>
+      ))}
+    </span>
+  )
+}
+
 function NavBar() {
   const handleScrollTo = useScrollLink()
 
@@ -99,7 +189,7 @@ function NavBar() {
           onClick={handleScrollTo('schedule-demo')}
           className="group inline-flex items-center gap-2 rounded-full bg-[#F89434] py-2 pl-4 pr-1.5 text-sm font-semibold text-white transition-transform active:scale-[0.97]"
         >
-          Schedule a Demo
+          Schedule a Call
           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 transition-transform duration-300 ease-out group-hover:translate-x-0.5">
             <ArrowUpRight size={13} weight="bold" />
           </span>
@@ -115,52 +205,437 @@ function Hero() {
 
   return (
     <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden px-6 pt-24 text-center sm:px-8">
-      <motion.h1
-        initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
-        animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: 'easeOut' }}
-        className="mt-6 text-[clamp(2.75rem,8vw,6.5rem)] font-black leading-[0.98] tracking-[-0.035em] text-[#0a0a0a]"
-      >
-        Call outs,
-        <br />
-        simplified.
-      </motion.h1>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-[8%] h-[36rem] w-[36rem] -translate-x-1/2 rounded-full opacity-[0.16] blur-[110px]"
+        style={{ background: `radial-gradient(circle, ${ORANGE}, transparent 70%)` }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-[0.4] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_35%,black,transparent)]"
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px)',
+          backgroundSize: '56px 56px',
+        }}
+      />
+
+      <h1 className="relative mt-6 text-[clamp(2.5rem,7.5vw,6rem)] font-black leading-[0.98] tracking-[-0.035em] text-[#0a0a0a]">
+        <RevealWords text={'Leap over the\ntechnical Hurdl'} trigger="mount" baseDelay={0.15} />
+      </h1>
 
       <motion.p
         initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
         animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: 'easeOut', delay: 0.15 }}
-        className="mt-6 max-w-xl text-base leading-7 text-black/55 sm:text-lg"
+        transition={{ duration: 0.7, ease: 'easeOut', delay: .3 }}
+        className="relative mt-6 max-w-xl text-base leading-7 text-black/55 sm:text-lg"
       >
-        When a caregiver can&apos;t make a shift, Hurdl handles the rest: texting your network, confirming
-        coverage, and updating your schedule. Your operations director never has to make a call.
+        Hurdl is your fractional CTO. We implement AI, build custom software, and make the
+        technical calls so a technical problem never becomes a reason to stall.
       </motion.p>
 
       <motion.div
         initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
         animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: 'easeOut', delay: 0.25 }}
-        className="mt-10 flex flex-col items-center gap-4 sm:flex-row"
+        transition={{ duration: 0.7, ease: 'easeOut', delay: .4 }}
+        className="relative mt-10 flex flex-col items-center gap-4 sm:flex-row"
       >
         <a
           href="#schedule-demo"
           onClick={handleScrollTo('schedule-demo')}
           className="group inline-flex items-center gap-2 rounded-full bg-[#F89434] py-3 pl-6 pr-2.5 text-sm font-semibold text-white transition-transform active:scale-[0.98]"
         >
-          Schedule a Demo
+          Schedule a Call
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 transition-transform duration-300 ease-out group-hover:translate-x-0.5">
             <ArrowUpRight size={16} weight="bold" />
           </span>
         </a>
         <a
-          href="#how-it-works"
-          onClick={handleScrollTo('how-it-works')}
+          href="#what-we-do"
+          onClick={handleScrollTo('what-we-do')}
           className="text-sm font-medium text-black/60 transition-colors hover:text-black"
         >
-          See how it works
+          See what we do
         </a>
       </motion.div>
     </section>
+  )
+}
+
+function About() {
+  const shouldReduceMotion = useReducedMotion()
+
+  const values = [
+    {
+      title: 'Embedded, not outsourced',
+      description: 'We work inside your business like part of the team, not a vendor at arm’s length.',
+    },
+    {
+      title: 'Built to ship',
+      description: 'Every engagement ends with something running in production, not a slide deck.',
+    },
+    {
+      title: 'AI-first thinking',
+      description: 'We look for where automation and AI can multiply your output, not just tick a box.',
+    },
+  ]
+
+  return (
+    <section id="about" className="relative mx-auto max-w-6xl scroll-mt-24 px-6 py-28 sm:px-8 md:py-36">
+      <div className="grid gap-14 md:grid-cols-2 md:gap-16">
+        <motion.div
+          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
+          whileInView={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-15% 0px' }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <h2 className="mt-4 text-[clamp(1.85rem,3.6vw,2.75rem)] font-black leading-[1.08] tracking-[-0.02em]">
+            <RevealWords text={'You don\'t need a full engineering team.\nYou need the right technical partner.'} />
+          </h2>
+          <p className="mt-5 max-w-md text-[15px] leading-7 text-black/55">
+            Most businesses hit a wall where the next step needs real technical judgment —
+            evaluating AI, architecting a new system, shipping custom software — but a full-time
+            CTO or engineering team isn&apos;t the right move yet. Hurdl steps in as that partner:
+            embedded enough to make real decisions, senior enough to be trusted with them.
+          </p>
+        </motion.div>
+
+        <div className="flex flex-col gap-6">
+          {values.map((value, i) => (
+            <motion.div
+              key={value.title}
+              initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
+              whileInView={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-15% 0px' }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: i * 0.08 }}
+              className="border-l-2 border-black/[0.08] pl-5"
+            >
+              <h3 className="text-base font-bold tracking-tight">{value.title}</h3>
+              <p className="mt-1.5 text-[15px] leading-6 text-black/55">{value.description}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function RadarPulse() {
+  const shouldReduceMotion = useReducedMotion()
+
+  return (
+    <div className="relative flex h-full w-full items-center justify-center">
+      {!shouldReduceMotion &&
+        [0, 0.7, 1.4].map((delay, i) => (
+          <motion.span
+            key={i}
+            className="absolute left-1/2 top-1/2 h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full border"
+            style={{ borderColor: 'rgba(248,148,52,0.4)' }}
+            initial={{ scale: 0.6, opacity: 0.6 }}
+            animate={{ scale: 3.6, opacity: 0 }}
+            transition={{ duration: 2.6, repeat: Infinity, ease: 'easeOut', delay }}
+          />
+        ))}
+      <div
+        className="relative flex h-12 w-12 items-center justify-center rounded-full"
+        style={{ background: 'rgba(248,148,52,0.12)', color: ORANGE }}
+      >
+        <Compass size={22} weight="bold" />
+      </div>
+    </div>
+  )
+}
+
+const AI_LINES = ['Analyzing workflow…', 'Mapping automation points…', 'Deploying AI agent…', 'Workflow automated ✓']
+
+function ConsoleFeed() {
+  const shouldReduceMotion = useReducedMotion()
+  const [i, setI] = useState(0)
+
+  useEffect(() => {
+    if (shouldReduceMotion) return
+    const id = setInterval(() => setI((v) => (v + 1) % AI_LINES.length), 1900)
+    return () => clearInterval(id)
+  }, [shouldReduceMotion])
+
+  return (
+    <div className="flex h-full w-full flex-col justify-center gap-2 px-6">
+      <div className="flex items-center gap-1.5">
+        <span className="h-2 w-2 rounded-full bg-black/15" />
+        <span className="h-2 w-2 rounded-full bg-black/15" />
+        <span className="h-2 w-2 rounded-full bg-black/15" />
+      </div>
+      <div
+        className="rounded-lg bg-white px-3 py-2.5 font-mono text-[12.5px] text-black/70"
+        style={{ boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.06), 0 8px 20px -14px rgba(0,0,0,0.3)' }}
+      >
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={shouldReduceMotion ? 'static' : i}
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.4 }}
+            className="inline-flex items-center gap-1"
+          >
+            {AI_LINES[i]}
+            <span className="inline-block h-3.5 w-[2px] animate-pulse" style={{ background: ORANGE }} />
+          </motion.span>
+        </AnimatePresence>
+      </div>
+    </div>
+  )
+}
+
+const CODE_LINES = [
+  { text: 'function shipFast() {', className: 'text-black/70' },
+  { text: '  return outcome;', className: 'text-[#F89434]' },
+  { text: '}', className: 'text-black/70' },
+]
+
+function CodeTyping() {
+  const shouldReduceMotion = useReducedMotion()
+
+  return (
+    <div className="flex h-full w-full flex-col justify-center gap-1.5 px-6 font-mono text-[12.5px]">
+      {CODE_LINES.map((line, i) => (
+        <div key={i} className="overflow-hidden">
+          <motion.div
+            className={`whitespace-nowrap ${line.className}`}
+            style={{ width: `${line.text.length}ch` }}
+            initial={shouldReduceMotion ? false : { clipPath: 'inset(0 100% 0 0)' }}
+            animate={{ clipPath: 'inset(0 0% 0 0)' }}
+            transition={{
+              duration: 0.7,
+              delay: 0.3 + i * 0.5,
+              repeat: Infinity,
+              repeatDelay: 2.6,
+              ease: [0.16, 1, 0.3, 1],
+            }}
+          >
+            {line.text}
+          </motion.div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function StackLayers() {
+  const shouldReduceMotion = useReducedMotion()
+  const layers = [0, 1, 2]
+
+  return (
+    <div className="relative flex h-full w-full items-center justify-center">
+      {layers.map((i) => (
+        <motion.div
+          key={i}
+          className="absolute h-20 w-32 rounded-xl border border-black/[0.06] bg-white"
+          style={{ zIndex: layers.length - i, boxShadow: '0 14px 30px -18px rgba(0,0,0,0.3)' }}
+          initial={{ y: i * 11, opacity: 1 - i * 0.15 }}
+          animate={shouldReduceMotion ? {} : { y: [i * 11, i * 11 - 7, i * 11] }}
+          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: i * 0.3 }}
+        />
+      ))}
+    </div>
+  )
+}
+
+const DILIGENCE_ITEMS = [
+  { label: 'Vendor reviewed', className: 'left-[8%] top-[16%]' },
+  { label: 'Risk: Low', className: 'right-[10%] top-[42%]' },
+  { label: 'Contract flagged', className: 'left-[14%] bottom-[18%]' },
+  { label: 'Security checked', className: 'right-[6%] bottom-[38%]' },
+]
+
+function ChecklistChips() {
+  const shouldReduceMotion = useReducedMotion()
+
+  return (
+    <div className="relative h-full w-full">
+      {DILIGENCE_ITEMS.map((item, i) => (
+        <motion.div
+          key={item.label}
+          className={`absolute flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-3 py-1.5 text-[11.5px] font-medium text-black/70 ${item.className}`}
+          style={{ boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.06), 0 10px 25px -14px rgba(0,0,0,0.3)' }}
+          initial={{ opacity: 0, y: 8 }}
+          animate={
+            shouldReduceMotion
+              ? { opacity: 1, y: 0 }
+              : { opacity: [0, 1, 1, 0], y: [8, 0, 0, -6] }
+          }
+          transition={{
+            duration: 3.6,
+            repeat: shouldReduceMotion ? 0 : Infinity,
+            times: [0, 0.18, 0.8, 1],
+            delay: i * 0.85,
+            ease: 'easeInOut',
+          }}
+        >
+          <CheckCircle size={12} weight="fill" style={{ color: ORANGE }} />
+          {item.label}
+        </motion.div>
+      ))}
+    </div>
+  )
+}
+
+function HandshakeShake() {
+  const shouldReduceMotion = useReducedMotion()
+
+  return (
+    <div className="relative flex h-full w-full flex-col items-center justify-center gap-4">
+      {!shouldReduceMotion &&
+        [0, 1].map((delay, i) => (
+          <motion.span
+            key={i}
+            className="absolute left-1/2 top-[42%] h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full border"
+            style={{ borderColor: 'rgba(248,148,52,0.4)' }}
+            initial={{ scale: 0.7, opacity: 0.5 }}
+            animate={{ scale: 3.2, opacity: 0 }}
+            transition={{ duration: 2.2, repeat: Infinity, ease: 'easeOut', delay }}
+          />
+        ))}
+      <motion.div
+        className="relative flex h-12 w-12 items-center justify-center rounded-full"
+        style={{ background: 'rgba(248,148,52,0.12)', color: ORANGE }}
+        animate={shouldReduceMotion ? {} : { y: [0, -5, 0, -5, 0], rotate: [0, -6, 4, -6, 0] }}
+        transition={{ duration: 1.3, repeat: Infinity, repeatDelay: 1, ease: 'easeInOut' }}
+      >
+        <Handshake size={22} weight="bold" />
+      </motion.div>
+      <motion.div
+        className="h-1.5 w-8 rounded-full bg-black/10"
+        animate={shouldReduceMotion ? {} : { scaleX: [1, 0.7, 1, 0.7, 1], opacity: [0.45, 0.25, 0.45, 0.25, 0.45] }}
+        transition={{ duration: 1.3, repeat: Infinity, repeatDelay: 1, ease: 'easeInOut' }}
+      />
+    </div>
+  )
+}
+
+function ServiceCard({ service, index }) {
+  const shouldReduceMotion = useReducedMotion()
+  const Visual = service.visual
+
+  return (
+    <motion.div
+      initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
+      whileInView={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-10% 0px' }}
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: (index % 3) * 0.08 }}
+      className="group relative flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-black/[0.07] bg-white shadow-[0_20px_45px_-30px_rgba(0,0,0,0.15)] transition-[box-shadow,border-color] duration-300 hover:border-[#F89434]/30 hover:shadow-[0_25px_60px_-25px_rgba(248,148,52,0.35)]"
+    >
+      <div className="relative h-36 shrink-0 overflow-hidden border-b border-black/[0.06] bg-[#fbfbfa] sm:h-40">
+        {Visual ? <Visual /> : null}
+      </div>
+      <div className="relative flex-1 p-7 sm:p-8">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-12 -top-6 h-40 w-40 rounded-full opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-25"
+          style={{ background: ORANGE }}
+        />
+        <h3 className="relative text-lg font-bold tracking-tight">{service.title}</h3>
+        <p className="relative mt-2 max-w-sm text-[15px] leading-6 text-black/55">{service.description}</p>
+      </div>
+    </motion.div>
+  )
+}
+
+function Services() {
+  const shouldReduceMotion = useReducedMotion()
+
+  return (
+    <section id="what-we-do" className="relative mx-auto max-w-6xl scroll-mt-24 px-6 py-28 sm:px-8 md:py-36">
+      <motion.div
+        initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
+        whileInView={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-15% 0px' }}
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        className="mb-14 max-w-xl"
+      >
+        <h2 className="mt-4 text-[clamp(2rem,4.5vw,3.25rem)] font-black leading-[1.05] tracking-[-0.02em]">
+          <RevealWords text={'How we plug the technical gap.'} />
+        </h2>
+      </motion.div>
+
+      <ServiceCarousel />
+    </section>
+  )
+}
+
+function ServiceCarousel() {
+  const scrollerRef = useRef(null)
+  const [progress, setProgress] = useState(0)
+
+  const updateProgress = useCallback(() => {
+    const el = scrollerRef.current
+    if (!el) return
+    const max = el.scrollWidth - el.clientWidth
+    setProgress(max > 0 ? el.scrollLeft / max : 0)
+  }, [])
+
+  useEffect(() => {
+    const el = scrollerRef.current
+    if (!el) return
+    const raf = requestAnimationFrame(updateProgress)
+    el.addEventListener('scroll', updateProgress, { passive: true })
+    window.addEventListener('resize', updateProgress)
+    return () => {
+      cancelAnimationFrame(raf)
+      el.removeEventListener('scroll', updateProgress)
+      window.removeEventListener('resize', updateProgress)
+    }
+  }, [updateProgress])
+
+  const scrollByCard = (dir) => {
+    const el = scrollerRef.current
+    if (!el) return
+    const card = el.querySelector('[data-carousel-card]')
+    const amount = card ? card.getBoundingClientRect().width + 20 : 320
+    el.scrollBy({ left: dir * amount, behavior: 'smooth' })
+  }
+
+  return (
+    <div>
+      <div
+        ref={scrollerRef}
+        className="flex snap-x snap-mandatory gap-5 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {SERVICES.map((service, i) => (
+          <div key={service.title} data-carousel-card className="w-[78vw] shrink-0 snap-start sm:w-[340px]">
+            <ServiceCard service={service} index={i} />
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-7 flex items-center gap-4">
+        <div className="relative h-[3px] flex-1 overflow-hidden rounded-full bg-black/[0.08]">
+          <motion.div
+            className="absolute inset-y-0 left-0 rounded-full bg-[#F89434]"
+            animate={{ width: `${Math.max(progress * 100, 8)}%` }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+          />
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <button
+            type="button"
+            onClick={() => scrollByCard(-1)}
+            aria-label="Previous"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-black/10 text-black/60 transition-colors hover:border-[#F89434]/40 hover:text-[#F89434]"
+          >
+            <CaretLeft size={16} weight="bold" />
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollByCard(1)}
+            aria-label="Next"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-black/10 text-black/60 transition-colors hover:border-[#F89434]/40 hover:text-[#F89434]"
+          >
+            <CaretRight size={16} weight="bold" />
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -177,11 +652,12 @@ function StepCard({ step, isLit }) {
       transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
     >
       <div
-        className="absolute left-0 top-0 flex h-8 w-8 items-center justify-center rounded-full border transition-colors duration-300 ease-out sm:h-10 sm:w-10"
+        className="absolute left-0 top-0 flex h-8 w-8 items-center justify-center rounded-full border transition-[background-color,border-color,box-shadow] duration-300 ease-out sm:h-10 sm:w-10"
         style={{
           borderColor: isLit ? ORANGE : 'rgba(0,0,0,0.1)',
           backgroundColor: isLit ? ORANGE : '#ffffff',
           color: isLit ? '#ffffff' : 'rgba(0,0,0,0.35)',
+          boxShadow: isLit ? `0 0 0 6px rgba(248,148,52,0.12), 0 0 24px 4px rgba(248,148,52,0.35)` : 'none',
         }}
       >
         <Icon size={18} weight="light" />
@@ -204,7 +680,7 @@ function StepCard({ step, isLit }) {
   )
 }
 
-function StoryTimeline() {
+function HowWeWork() {
   const sectionRef = useRef(null)
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -218,15 +694,13 @@ function StoryTimeline() {
   })
 
   return (
-    <section id="how-it-works" ref={sectionRef} className="relative mx-auto max-w-3xl scroll-mt-24 px-6 py-32 sm:px-8 md:py-40">
+    <section id="how-we-work" ref={sectionRef} className="relative mx-auto max-w-3xl scroll-mt-24 px-6 py-32 sm:px-8 md:py-40">
       <div className="mb-20 max-w-xl">
         <span className="inline-flex items-center rounded-full border border-black/10 bg-black/[0.03] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-black/50">
-          How it works
+          How We Work
         </span>
         <h2 className="mt-4 text-[clamp(2rem,4.5vw,3.25rem)] font-black leading-[1.05] tracking-[-0.02em]">
-          One text starts it.
-          <br />
-          Hurdl finishes it.
+          <RevealWords text={'One call starts it.\nHurdl carries it through.'} />
         </h2>
       </div>
 
@@ -251,8 +725,8 @@ function DemoSection({ demoForm, demoStatus, onFieldChange, onSubmit, successEnt
     <section id="schedule-demo" className="scroll-mt-24 bg-[#fafafa] px-6 py-28 sm:px-8 sm:py-36">
       <div className="mx-auto max-w-xl">
         <div className="text-center">
-          <h2 className="text-[clamp(2rem,4.5vw,3rem)] font-black tracking-[-0.02em]">Schedule a Demo</h2>
-          <p className="mt-3 text-black/55">See how Hurdl handles your next call-out, hands-off.</p>
+          <h2 className="text-[clamp(2rem,4.5vw,3rem)] font-black tracking-[-0.02em]">Schedule a Call</h2>
+          <p className="mt-3 text-black/55">Tell us about the problem you&apos;re facing. We&apos;ll show you how Hurdl can help.</p>
         </div>
 
         <div className="mt-10 rounded-[2rem] bg-black/[0.02] p-2" style={{ boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.05)' }}>
@@ -352,7 +826,7 @@ function Footer() {
       <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-6 py-14 text-sm text-black/55 sm:grid-cols-4 sm:px-8">
         <div className="col-span-2 sm:col-span-1">
           <img src="/hurdl_logo.png" alt="Hurdl" className="h-7 w-auto" />
-          <p className="mt-3 leading-6">Autonomy, designed for everyday care.</p>
+          <p className="mt-3 leading-6">Technical expertise, on demand.</p>
         </div>
         <div>
           <p className="mb-3 text-xs uppercase tracking-[0.14em] text-black/35">Information</p>
@@ -410,7 +884,9 @@ export default function Home() {
     <main id="top" className="bg-white text-[#0a0a0a] antialiased">
       <NavBar />
       <Hero />
-      <StoryTimeline />
+      <About />
+      <Services />
+      <HowWeWork />
       <DemoSection
         demoForm={demoForm}
         demoStatus={demoStatus}

@@ -219,7 +219,7 @@ that isn't needed.
 
 - **Mechanical**: `npm run lint` — expect no new errors. `npm run build` — expect a clean
   Vite build with no console warnings about missing `key` props inside `AnimatePresence`.
-- **Feel check**: run `npm run dev`, scroll to the "Schedule a Demo" section, fill in the three
+- **Feel check**: run `npm run dev`, scroll to the "Schedule a Call" section, fill in the three
   fields with any values, and submit (the `fetch` will hit `/` and may 404 in local dev —
   that's fine, but to see the success state specifically, temporarily force
   `setDemoStatus('success')` in dev tools or via a quick edit, then revert):
