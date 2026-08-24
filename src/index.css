@@ -16,3 +16,18 @@ html {
     scroll-behavior: auto;
   }
 }
+
+@keyframes carousel-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    /* Content is duplicated exactly 2x, so -50% is precisely one copy's
+       width — the loop restarts on an identical frame, no visible seam. */
+    transform: translateX(-50%);
+  }
+}
+
+.carousel-track {
+  animation: carousel-drift 40s linear infinite;
+}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   AnimatePresence,
   animate,
@@ -576,113 +576,20 @@ function Services() {
   )
 }
 
-const CAROUSEL_DRIFT_PX_PER_SEC = 28
-
 function ServiceCarousel() {
-  const scrollerRef = useRef(null)
-  const isPausedRef = useRef(false) // true while the user is hovering/touching/dragging the strip
-  const setWidthRef = useRef(0) // px width of one (of three) copies of SERVICES
   const shouldReduceMotion = useReducedMotion()
 
-  const measureSetWidth = useCallback(() => {
-    const el = scrollerRef.current
-    if (!el) return 0
-    const width = el.scrollWidth / 3
-    setWidthRef.current = width
-    return width
-  }, [])
-
-  // Start in the middle copy so there's a full copy's worth of room to drift
-  // or drag in either direction before a wrap is needed.
-  useLayoutEffect(() => {
-    const el = scrollerRef.current
-    if (!el) return
-    const width = measureSetWidth()
-    el.scrollLeft = width
-
-    const onResize = () => {
-      const prevWidth = setWidthRef.current
-      const lapFraction = prevWidth > 0 ? (el.scrollLeft - prevWidth) / prevWidth : 0
-      const nextWidth = measureSetWidth()
-      el.scrollLeft = nextWidth + lapFraction * nextWidth
-    }
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [measureSetWidth])
-
-  // Pause the auto-drift while the user is actively touching/dragging/hovering the strip.
-  useEffect(() => {
-    const el = scrollerRef.current
-    if (!el) return
-    const pause = () => {
-      isPausedRef.current = true
-    }
-    const resume = () => {
-      isPausedRef.current = false
-    }
-    el.addEventListener('pointerdown', pause)
-    el.addEventListener('pointerup', resume)
-    el.addEventListener('pointercancel', resume)
-    el.addEventListener('mouseenter', pause)
-    el.addEventListener('mouseleave', resume)
-    return () => {
-      el.removeEventListener('pointerdown', pause)
-      el.removeEventListener('pointerup', resume)
-      el.removeEventListener('pointercancel', resume)
-      el.removeEventListener('mouseenter', pause)
-      el.removeEventListener('mouseleave', resume)
-    }
-  }, [])
-
-  // Silently wrap scrollLeft between the tripled copies to fake an infinite loop —
-  // covers auto-drift as well as the user dragging/scrolling the strip directly.
-  const wrapScrollPosition = useCallback(() => {
-    const el = scrollerRef.current
-    const width = setWidthRef.current
-    if (!el || !width) return
-    if (el.scrollLeft >= width * 2) {
-      el.scrollLeft -= width
-    } else if (el.scrollLeft < width) {
-      el.scrollLeft += width
-    }
-  }, [])
-
-  useEffect(() => {
-    const el = scrollerRef.current
-    if (!el) return
-
-    if (shouldReduceMotion) {
-      el.addEventListener('scroll', wrapScrollPosition, { passive: true })
-      return () => el.removeEventListener('scroll', wrapScrollPosition)
-    }
-
-    let rafId
-    let last = performance.now()
-    const tick = (now) => {
-      const dt = (now - last) / 1000
-      last = now
-      if (!isPausedRef.current) {
-        el.scrollLeft += CAROUSEL_DRIFT_PX_PER_SEC * dt
-      }
-      wrapScrollPosition()
-      rafId = requestAnimationFrame(tick)
-    }
-    rafId = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(rafId)
-  }, [shouldReduceMotion, wrapScrollPosition])
-
   return (
-    <div
-      ref={scrollerRef}
-      className="flex gap-5 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-    >
-      {[0, 1, 2].flatMap((copy) =>
-        SERVICES.map((service, i) => (
-          <div key={`${copy}-${service.title}`} className="w-[78vw] shrink-0 sm:w-[340px]">
-            <ServiceCard service={service} index={i} />
-          </div>
-        ))
-      )}
+    <div className="overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className={`flex w-max gap-5 ${shouldReduceMotion ? '' : 'carousel-track'}`}>
+        {[0, 1].flatMap((copy) =>
+          SERVICES.map((service, i) => (
+            <div key={`${copy}-${service.title}`} className="w-[78vw] shrink-0 sm:w-[340px]">
+              <ServiceCard service={service} index={i} />
+            </div>
+          ))
+        )}
+      </div>
     </div>
   )
 }
