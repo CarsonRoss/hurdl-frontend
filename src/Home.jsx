@@ -221,7 +221,7 @@ function Hero() {
       />
 
       <h1 className="relative mt-6 text-[clamp(2.5rem,7.5vw,6rem)] font-black leading-[0.98] tracking-[-0.035em] text-[#0a0a0a]">
-        <RevealWords text={'Leap over the\ntechnical Hurdl'} trigger="mount" baseDelay={0.15} />
+        <RevealWords text={'Leap over your\ntechnical Hurdl'} trigger="mount" baseDelay={0.15} />
       </h1>
 
       <motion.p
