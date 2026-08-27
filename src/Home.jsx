@@ -9,7 +9,7 @@ import {
   useTransform,
 } from 'framer-motion'
 import { ReactLenis, useLenis } from 'lenis/react'
-import { Color, Mesh, Program, Renderer, Triangle } from 'ogl'
+import { Camera, Mesh, PlaneGeometry, Scene, ShaderMaterial, Vector2, WebGLRenderer } from 'three'
 import {
   ArrowUpRight,
   CaretRightIcon,
@@ -238,215 +238,172 @@ function NavBar() {
   )
 }
 
-// Animated WebGL gradient mesh (ogl), ported from a user-supplied component
-// (originally purple/pink) into plain JSX for this project's stack, tinted
-// to the Hurdl orange palette — the same 3-stop ramp used by the "One call
-// starts it" gradient card. Skipped entirely under reduced motion.
-const GRADIENT_MESH_VERT = `
-attribute vec2 uv;
-attribute vec2 position;
-
-varying vec2 vUv;
-
+// Raymarched, dune-like wavy landscape (three.js), ported from a user-
+// supplied component into plain JSX for this project's stack. Base color
+// swapped from brown to Hurdl orange — safe to do directly here (unlike the
+// previous ogl gradient-mesh shader) because the only brightening operations
+// are additive-white (fresnel highlight) and a self-multiply toward black
+// (distance fog), neither of which shifts hue the way colorDodge did.
+// Skipped entirely under reduced motion.
+const WAVY_VERTEX_SHADER = `
 void main() {
-    vUv = uv;
-    gl_Position = vec4(position, 0, 1);
+  gl_Position = vec4(position, 1.0);
 }
 `
 
-function gradientMeshFrag(distortion) {
-  return `
+const WAVY_FRAGMENT_SHADER = `
 precision highp float;
+uniform vec2 resolution;
+uniform float time;
 
-uniform float uTime;
-uniform float uSwirl;
-uniform float uSpeed;
-uniform float uScale;
-uniform float uOffsetX;
-uniform float uOffsetY;
-uniform float uRotation;
-uniform float uWaveAmp;
-uniform float uWaveFreq;
-uniform float uWaveSpeed;
-uniform float uGrain;
-uniform vec3 uColorA;
-uniform vec3 uColorB;
-uniform vec3 uColorC;
-uniform vec3 uResolution;
+#define T mod(2.*time,180.)
+#define S smoothstep
 
-varying vec2 vUv;
+float rnd(float a){return fract(sin(a*12.233)*78.599);}
+float rnd(vec2 p){return fract(sin(dot(p,p.yx+vec2(234,543)))*345678.);}
 
-float wave(vec2 uv, float freq, float speed, float time) {
-    return sin(uv.x * freq + time * speed) * cos(uv.y * freq + time * speed);
+float curve(float a,float b){
+  a/=b;
+  return mix(rnd(floor(a)), rnd(floor(a)+1.),
+    pow(S(0.,1.,fract(a)),10.));
 }
 
-float random(vec2 st) {
-    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+mat2 rot(float a){
+  float s=sin(a), c=cos(a);
+  return mat2(c,-s,s,c);
 }
 
-vec3 colorDodge(vec3 base, vec3 blend) {
-    return min(base / (1.0 - blend + 0.0001), 1.0);
+float map(vec3 p){
+  if(p.y>0.28||p.z>15.) return 5e5;
+  float d = p.y + (1.-cos(sin(T+6.3*p.x)))*.1;
+  d += 1.-pow(cos(.75*sin(T+curve(T*.5,8.)+
+           2.*(1.+curve(T*2.5,14.4))*
+           (p.xz*rot(.125)).x)),2.);
+  d += 1.-cos(curve(T*.2,8.)+
+           sin(T+.8*(p.xz*rot(.38)).x))*.1;
+  d += 1.2*sin(p.z*.4+sin(p.x*.6+1.2));
+  d = max(d, -p.z);
+  return d * .5;
 }
 
-void main() {
-    float mr = min(uResolution.x, uResolution.y);
-    vec2 uv = (vUv.xy * 2.0 - 1.0) * uResolution.xy / mr;
+vec3 norm(vec3 p){
+  vec2 e = vec2(1e-3,0.0);
+  return normalize(vec3(
+    map(p + e.xyy) - map(p - e.xyy),
+    map(p + e.yxy) - map(p - e.yxy),
+    map(p + e.yyx) - map(p - e.yyx)
+  ));
+}
 
-    uv = uv * uScale + vec2(uOffsetX, uOffsetY);
+void cam(inout vec3 p){
+  p.xz *= rot(sin(T*.2)*.2);
+}
 
-    float cosR = cos(uRotation);
-    float sinR = sin(uRotation);
-    uv = vec2(
-        uv.x * cosR - uv.y * sinR,
-        uv.x * sinR + uv.y * cosR
-    );
+void main(){
+  vec2 uv = (gl_FragCoord.xy - .5*resolution)/
+            min(resolution.x,resolution.y);
+  vec3 col = vec3(0), p = vec3(0,0,-3),
+       rd = normalize(vec3(uv,1.));
 
-    uv.x += wave(uv, uWaveFreq, uWaveSpeed, uTime) * uWaveAmp;
-    uv.y += wave(uv + 10.0, uWaveFreq * 1.5, uWaveSpeed * 0.8, uTime) * uWaveAmp * 0.5;
+  cam(p);
+  cam(rd);
 
-    float angle = atan(uv.y, uv.x);
-    float radius = length(uv);
-    angle += uSwirl * radius;
-    uv = vec2(cos(angle), sin(angle)) * radius;
+  const float steps = 180., maxd = 15.;
+  float distAccum = 0., difF = mix(.75,1.,rnd(p.xz));
 
-    float d = -uTime * 0.5 * uSpeed;
-    float a = 0.0;
-    for (float i = 0.0; i < ${distortion.toFixed(1)}; ++i) {
-        a += cos(i - d - a * uv.x);
-        d += sin(uv.y * i + a);
-    }
-    d += uTime * 0.5 * uSpeed;
+  for(float i = 0.; i < steps; i++){
+    float d = map(p) * difF;
+    if(d < 1e-3) break;
+    if(d > maxd){ distAccum = maxd; break; }
+    p += rd * d;
+    distAccum += d;
+  }
 
-    float mix1 = (sin(d) + 1.0) * 0.5;
-    float mix2 = (cos(a) + 1.0) * 0.5;
-    vec3 col = mix(uColorA, uColorB, mix1);
-    col = mix(col, uColorC, mix2);
+  vec3 n = norm(p);
+  vec3 lightDir = normalize(vec3(0,10,-.1));
+  float diff = max(dot(n, lightDir), 0.);
+  float fres = 1. + max(dot(-rd, n), 0.);
 
-    float grain = (random(gl_FragCoord.xy + uTime) - 0.5) * uGrain;
-    vec3 grainCol = vec3(0.5 + grain);
-    col = colorDodge(col, grainCol);
+  // Hurdl orange base (was brown vec3(.3,.2,.1)) — matches brand #F89434
+  col += vec3(.95, .55, .18);
+  col += .2 * pow(fres, 3.2) * diff;
+  col *= mix(col, vec3(0),
+    1. - exp(-125e-5 * distAccum*distAccum*distAccum));
 
-    gl_FragColor = vec4(col, 1.0);
+  gl_FragColor = vec4(col, 1.);
 }
 `
-}
 
-function hexToRgb(hex) {
-  const cleanHex = hex.replace('#', '')
-  const r = parseInt(cleanHex.substring(0, 2), 16) / 255
-  const g = parseInt(cleanHex.substring(2, 4), 16) / 255
-  const b = parseInt(cleanHex.substring(4, 6), 16) / 255
-  return [r, g, b]
-}
-
-// Stable reference (not a fresh array literal per render) so the effect
-// below doesn't tear down/rebuild the WebGL context on every re-render.
-// Same hue at three brightness levels (not three different hues), and
-// deliberately dark — the shader's colorDodge blend does a ~2x brightness
-// multiply as its baseline (independent of the grain uniform), so a
-// near-max-brightness orange like our full ORANGE clips its R channel
-// almost immediately, drifting to pale yellow/green before the other
-// channels catch up. Starting well below peak intensity leaves headroom
-// so the dodge lands on saturated orange instead of blown-out white/yellow.
-const GRADIENT_MESH_COLORS = ['#704317', '#3e250d', '#140c04']
-
-function GradientMesh({
-  colors = GRADIENT_MESH_COLORS,
-  distortion = 5,
-  swirl = 0.5,
-  speed = 1.0,
-  scale = 1,
-  offsetX = 0.0,
-  offsetY = 0.0,
-  rotation = 90,
-  waveAmp = 0.1,
-  waveFreq = 10.0,
-  waveSpeed = 0.2,
-  grain = 0.03,
-}) {
-  const ctnRef = useRef(null)
+function WavyBackground({ speed = 0.01 }) {
+  const containerRef = useRef(null)
   const shouldReduceMotion = useReducedMotion()
 
   useEffect(() => {
-    if (shouldReduceMotion || !ctnRef.current) return
+    const container = containerRef.current
+    if (shouldReduceMotion || !container) return
 
-    const ctn = ctnRef.current
-    const renderer = new Renderer()
-    const gl = renderer.gl
-    gl.clearColor(0, 0, 0, 1)
+    const scene = new Scene()
+    const camera = new Camera()
+    camera.position.z = 1
 
-    function resize() {
-      renderer.setSize(ctn.offsetWidth, ctn.offsetHeight)
-    }
-    window.addEventListener('resize', resize, false)
-    resize()
+    const renderer = new WebGLRenderer({ antialias: true, alpha: true })
+    // Capped, not full devicePixelRatio — this shader raymarches every pixel,
+    // so retina displays (2-3x DPR) were tracing 4-9x more pixels than needed
+    // for what's ultimately a soft, blurry background.
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1))
+    container.appendChild(renderer.domElement)
 
-    const geometry = new Triangle(gl)
-
-    const rgbColors = colors.slice(0, 3).map(hexToRgb)
+    const geometry = new PlaneGeometry(2, 2)
     const uniforms = {
-      uTime: { value: 0 },
-      uSwirl: { value: swirl },
-      uSpeed: { value: speed },
-      uScale: { value: scale },
-      uOffsetX: { value: offsetX },
-      uOffsetY: { value: offsetY },
-      uRotation: { value: rotation },
-      uWaveAmp: { value: waveAmp },
-      uWaveFreq: { value: waveFreq },
-      uWaveSpeed: { value: waveSpeed },
-      uResolution: {
-        value: new Color(gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height),
-      },
-      uGrain: { value: grain },
+      time: { value: 0.0 },
+      resolution: { value: new Vector2() },
     }
 
-    const labels = ['A', 'B', 'C']
-    rgbColors.forEach((c, i) => {
-      uniforms[`uColor${labels[i]}`] = { value: new Color(...c) }
-    })
-
-    const program = new Program(gl, {
-      vertex: GRADIENT_MESH_VERT,
-      fragment: gradientMeshFrag(distortion),
+    const material = new ShaderMaterial({
       uniforms,
+      vertexShader: WAVY_VERTEX_SHADER,
+      fragmentShader: WAVY_FRAGMENT_SHADER,
     })
 
-    const mesh = new Mesh(gl, { geometry, program })
+    const mesh = new Mesh(geometry, material)
+    scene.add(mesh)
 
-    let animateId
-    function update(t) {
-      animateId = requestAnimationFrame(update)
-      program.uniforms.uTime.value = t * 0.001
-      renderer.render({ scene: mesh })
+    function onResize() {
+      const width = container.clientWidth
+      const height = container.clientHeight
+      renderer.setSize(width, height)
+      uniforms.resolution.value.set(renderer.domElement.width, renderer.domElement.height)
     }
-    animateId = requestAnimationFrame(update)
+    window.addEventListener('resize', onResize)
+    onResize()
 
-    ctn.appendChild(gl.canvas)
+    let animationId
+    function animate() {
+      uniforms.time.value += speed
+      renderer.render(scene, camera)
+      animationId = requestAnimationFrame(animate)
+    }
+    animate()
 
     return () => {
-      cancelAnimationFrame(animateId)
-      window.removeEventListener('resize', resize)
-      ctn.removeChild(gl.canvas)
-      gl.getExtension('WEBGL_lose_context')?.loseContext()
+      cancelAnimationFrame(animationId)
+      window.removeEventListener('resize', onResize)
+      if (container.contains(renderer.domElement)) {
+        container.removeChild(renderer.domElement)
+      }
+      geometry.dispose()
+      material.dispose()
+      renderer.dispose()
     }
-  }, [
-    shouldReduceMotion,
-    colors,
-    distortion,
-    swirl,
-    speed,
-    scale,
-    offsetX,
-    offsetY,
-    rotation,
-    waveAmp,
-    waveFreq,
-    waveSpeed,
-    grain,
-  ])
+  }, [shouldReduceMotion, speed])
 
-  return <div ref={ctnRef} aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden" />
+  return (
+    <div
+      ref={containerRef}
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 h-full w-full overflow-hidden"
+    />
+  )
 }
 
 function EmailCaptureForm() {
@@ -547,7 +504,7 @@ function Hero() {
 
   return (
     <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-[#0a0a0a] px-6 pt-24 text-center sm:px-8">
-      <GradientMesh />
+      <WavyBackground />
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
@@ -720,7 +677,7 @@ function Services() {
         <div>
           <Eyebrow label="Services" />
           <h2 className="mt-4 text-[clamp(2rem,4.5vw,3.25rem)] font-black leading-[1.05] tracking-[-0.02em]">
-            <RevealWords text={'How we plug the technical gap.'} />
+            <RevealWords text={'How we close the gap.'} />
           </h2>
         </div>
 
