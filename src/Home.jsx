@@ -9,6 +9,7 @@ import {
   useTransform,
 } from 'framer-motion'
 import { ReactLenis, useLenis } from 'lenis/react'
+import { Color, Mesh, Program, Renderer, Triangle } from 'ogl'
 import {
   ArrowUpRight,
   CaretRightIcon,
@@ -237,113 +238,215 @@ function NavBar() {
   )
 }
 
-// Flowing WebGL "wisp" glow — 6 overlapping animated wave lines rendered
-// with a raw fragment shader, tinted to the Hurdl orange palette. Skipped
-// entirely under reduced motion (canvas stays empty, Hero's solid bg shows).
-const WISP_VERTEX_SHADER = `
-  attribute vec2 position;
-  void main() {
-    gl_Position = vec4(position, 0.0, 1.0);
-  }
+// Animated WebGL gradient mesh (ogl), ported from a user-supplied component
+// (originally purple/pink) into plain JSX for this project's stack, tinted
+// to the Hurdl orange palette — the same 3-stop ramp used by the "One call
+// starts it" gradient card. Skipped entirely under reduced motion.
+const GRADIENT_MESH_VERT = `
+attribute vec2 uv;
+attribute vec2 position;
+
+varying vec2 vUv;
+
+void main() {
+    vUv = uv;
+    gl_Position = vec4(position, 0, 1);
+}
 `
 
-const WISP_FRAGMENT_SHADER = `
-  precision highp float;
-  uniform vec2 u_resolution;
-  uniform float u_time;
+function gradientMeshFrag(distortion) {
+  return `
+precision highp float;
 
-  void main() {
-    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
-    uv.y -= 0.5;
-    uv.x *= u_resolution.x / u_resolution.y;
+uniform float uTime;
+uniform float uSwirl;
+uniform float uSpeed;
+uniform float uScale;
+uniform float uOffsetX;
+uniform float uOffsetY;
+uniform float uRotation;
+uniform float uWaveAmp;
+uniform float uWaveFreq;
+uniform float uWaveSpeed;
+uniform float uGrain;
+uniform vec3 uColorA;
+uniform vec3 uColorB;
+uniform vec3 uColorC;
+uniform vec3 uResolution;
 
-    vec3 finalColor = vec3(0.0);
+varying vec2 vUv;
 
-    for (float i = 1.0; i <= 6.0; i++) {
-      float t = u_time * 0.3 + i * 0.15;
+float wave(vec2 uv, float freq, float speed, float time) {
+    return sin(uv.x * freq + time * speed) * cos(uv.y * freq + time * speed);
+}
 
-      float y = sin(uv.x * (1.5 + i * 0.2) + t) * 0.15 * cos(t * 0.5);
-      y += cos(uv.x * (1.0 + i * 0.3) - t * 0.8) * 0.1;
+float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
 
-      float thickness = 0.0015 * i;
-      float glow = thickness / abs(uv.y - y);
+vec3 colorDodge(vec3 base, vec3 blend) {
+    return min(base / (1.0 - blend + 0.0001), 1.0);
+}
 
-      // Hurdl orange palette (was emerald/cyan)
-      vec3 color = vec3(0.45 + i * 0.08, 0.18 + i * 0.05, 0.02 * i);
-      finalColor += color * glow;
+void main() {
+    float mr = min(uResolution.x, uResolution.y);
+    vec2 uv = (vUv.xy * 2.0 - 1.0) * uResolution.xy / mr;
+
+    uv = uv * uScale + vec2(uOffsetX, uOffsetY);
+
+    float cosR = cos(uRotation);
+    float sinR = sin(uRotation);
+    uv = vec2(
+        uv.x * cosR - uv.y * sinR,
+        uv.x * sinR + uv.y * cosR
+    );
+
+    uv.x += wave(uv, uWaveFreq, uWaveSpeed, uTime) * uWaveAmp;
+    uv.y += wave(uv + 10.0, uWaveFreq * 1.5, uWaveSpeed * 0.8, uTime) * uWaveAmp * 0.5;
+
+    float angle = atan(uv.y, uv.x);
+    float radius = length(uv);
+    angle += uSwirl * radius;
+    uv = vec2(cos(angle), sin(angle)) * radius;
+
+    float d = -uTime * 0.5 * uSpeed;
+    float a = 0.0;
+    for (float i = 0.0; i < ${distortion.toFixed(1)}; ++i) {
+        a += cos(i - d - a * uv.x);
+        d += sin(uv.y * i + a);
     }
+    d += uTime * 0.5 * uSpeed;
 
-    gl_FragColor = vec4(finalColor, 1.0);
-  }
+    float mix1 = (sin(d) + 1.0) * 0.5;
+    float mix2 = (cos(a) + 1.0) * 0.5;
+    vec3 col = mix(uColorA, uColorB, mix1);
+    col = mix(col, uColorC, mix2);
+
+    float grain = (random(gl_FragCoord.xy + uTime) - 0.5) * uGrain;
+    vec3 grainCol = vec3(0.5 + grain);
+    col = colorDodge(col, grainCol);
+
+    gl_FragColor = vec4(col, 1.0);
+}
 `
+}
 
-function WispBackground() {
-  const canvasRef = useRef(null)
+function hexToRgb(hex) {
+  const cleanHex = hex.replace('#', '')
+  const r = parseInt(cleanHex.substring(0, 2), 16) / 255
+  const g = parseInt(cleanHex.substring(2, 4), 16) / 255
+  const b = parseInt(cleanHex.substring(4, 6), 16) / 255
+  return [r, g, b]
+}
+
+// Stable reference (not a fresh array literal per render) so the effect
+// below doesn't tear down/rebuild the WebGL context on every re-render.
+// Same hue at three brightness levels (not three different hues), and
+// deliberately dark — the shader's colorDodge blend does a ~2x brightness
+// multiply as its baseline (independent of the grain uniform), so a
+// near-max-brightness orange like our full ORANGE clips its R channel
+// almost immediately, drifting to pale yellow/green before the other
+// channels catch up. Starting well below peak intensity leaves headroom
+// so the dodge lands on saturated orange instead of blown-out white/yellow.
+const GRADIENT_MESH_COLORS = ['#704317', '#3e250d', '#140c04']
+
+function GradientMesh({
+  colors = GRADIENT_MESH_COLORS,
+  distortion = 5,
+  swirl = 0.5,
+  speed = 1.0,
+  scale = 1,
+  offsetX = 0.0,
+  offsetY = 0.0,
+  rotation = 90,
+  waveAmp = 0.1,
+  waveFreq = 10.0,
+  waveSpeed = 0.2,
+  grain = 0.03,
+}) {
+  const ctnRef = useRef(null)
   const shouldReduceMotion = useReducedMotion()
 
   useEffect(() => {
-    if (shouldReduceMotion) return
-    const canvas = canvasRef.current
-    const gl = canvas.getContext('webgl')
-    if (!gl) return
+    if (shouldReduceMotion || !ctnRef.current) return
+
+    const ctn = ctnRef.current
+    const renderer = new Renderer()
+    const gl = renderer.gl
+    gl.clearColor(0, 0, 0, 1)
 
     function resize() {
-      canvas.width = canvas.clientWidth
-      canvas.height = canvas.clientHeight
-      gl.viewport(0, 0, canvas.width, canvas.height)
+      renderer.setSize(ctn.offsetWidth, ctn.offsetHeight)
     }
-
-    function createShader(type, source) {
-      const shader = gl.createShader(type)
-      gl.shaderSource(shader, source)
-      gl.compileShader(shader)
-      return shader
-    }
-
-    const program = gl.createProgram()
-    gl.attachShader(program, createShader(gl.VERTEX_SHADER, WISP_VERTEX_SHADER))
-    gl.attachShader(program, createShader(gl.FRAGMENT_SHADER, WISP_FRAGMENT_SHADER))
-    gl.linkProgram(program)
-    gl.useProgram(program)
-
-    const buffer = gl.createBuffer()
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW)
-
-    const positionLocation = gl.getAttribLocation(program, 'position')
-    gl.enableVertexAttribArray(positionLocation)
-    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0)
-
-    const timeLocation = gl.getUniformLocation(program, 'u_time')
-    const resolutionLocation = gl.getUniformLocation(program, 'u_resolution')
-
-    let rafId
-    function render(time) {
-      gl.uniform1f(timeLocation, time * 0.001)
-      gl.uniform2f(resolutionLocation, canvas.width, canvas.height)
-      gl.clearColor(0, 0, 0, 0)
-      gl.clear(gl.COLOR_BUFFER_BIT)
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
-      rafId = requestAnimationFrame(render)
-    }
-
+    window.addEventListener('resize', resize, false)
     resize()
-    window.addEventListener('resize', resize)
-    rafId = requestAnimationFrame(render)
+
+    const geometry = new Triangle(gl)
+
+    const rgbColors = colors.slice(0, 3).map(hexToRgb)
+    const uniforms = {
+      uTime: { value: 0 },
+      uSwirl: { value: swirl },
+      uSpeed: { value: speed },
+      uScale: { value: scale },
+      uOffsetX: { value: offsetX },
+      uOffsetY: { value: offsetY },
+      uRotation: { value: rotation },
+      uWaveAmp: { value: waveAmp },
+      uWaveFreq: { value: waveFreq },
+      uWaveSpeed: { value: waveSpeed },
+      uResolution: {
+        value: new Color(gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height),
+      },
+      uGrain: { value: grain },
+    }
+
+    const labels = ['A', 'B', 'C']
+    rgbColors.forEach((c, i) => {
+      uniforms[`uColor${labels[i]}`] = { value: new Color(...c) }
+    })
+
+    const program = new Program(gl, {
+      vertex: GRADIENT_MESH_VERT,
+      fragment: gradientMeshFrag(distortion),
+      uniforms,
+    })
+
+    const mesh = new Mesh(gl, { geometry, program })
+
+    let animateId
+    function update(t) {
+      animateId = requestAnimationFrame(update)
+      program.uniforms.uTime.value = t * 0.001
+      renderer.render({ scene: mesh })
+    }
+    animateId = requestAnimationFrame(update)
+
+    ctn.appendChild(gl.canvas)
 
     return () => {
+      cancelAnimationFrame(animateId)
       window.removeEventListener('resize', resize)
-      cancelAnimationFrame(rafId)
+      ctn.removeChild(gl.canvas)
+      gl.getExtension('WEBGL_lose_context')?.loseContext()
     }
-  }, [shouldReduceMotion])
+  }, [
+    shouldReduceMotion,
+    colors,
+    distortion,
+    swirl,
+    speed,
+    scale,
+    offsetX,
+    offsetY,
+    rotation,
+    waveAmp,
+    waveFreq,
+    waveSpeed,
+    grain,
+  ])
 
-  return (
-    <canvas
-      ref={canvasRef}
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-0 h-full w-full opacity-80 mix-blend-screen"
-    />
-  )
+  return <div ref={ctnRef} aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden" />
 }
 
 function EmailCaptureForm() {
@@ -444,17 +547,12 @@ function Hero() {
 
   return (
     <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-[#0a0a0a] px-6 pt-24 text-center sm:px-8">
-      <WispBackground />
+      <GradientMesh />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-[0.4] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_35%,black,transparent)]"
-        style={{
-          backgroundImage:
-            'linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px)',
-          backgroundSize: '56px 56px',
-        }}
+        className="pointer-events-none absolute inset-0"
+        style={{ background: 'radial-gradient(ellipse 75% 65% at 50% 45%, rgba(10,10,10,0.8) 0%, rgba(10,10,10,0.55) 45%, transparent 75%)' }}
       />
-
       <h1 className="relative mt-6 text-[clamp(2.5rem,7.5vw,6rem)] font-black leading-[0.98] tracking-[-0.035em]">
         <RevealWords text={'Leap over your\ntechnical Hurdl'} trigger="mount" baseDelay={0.15} />
       </h1>
