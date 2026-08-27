@@ -2,7 +2,6 @@ import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import {
   AnimatePresence,
   motion,
-  useMotionValue,
   useMotionValueEvent,
   useReducedMotion,
   useScroll,
@@ -238,45 +237,112 @@ function NavBar() {
   )
 }
 
-// Ambient orange glow that eases toward the cursor with spring physics.
-// Falls back to a static centered glow under reduced motion or when no
-// pointermove ever fires (touch devices).
-function MouseGradient() {
+// Flowing WebGL "wisp" glow — 6 overlapping animated wave lines rendered
+// with a raw fragment shader, tinted to the Hurdl orange palette. Skipped
+// entirely under reduced motion (canvas stays empty, Hero's solid bg shows).
+const WISP_VERTEX_SHADER = `
+  attribute vec2 position;
+  void main() {
+    gl_Position = vec4(position, 0.0, 1.0);
+  }
+`
+
+const WISP_FRAGMENT_SHADER = `
+  precision highp float;
+  uniform vec2 u_resolution;
+  uniform float u_time;
+
+  void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    uv.y -= 0.5;
+    uv.x *= u_resolution.x / u_resolution.y;
+
+    vec3 finalColor = vec3(0.0);
+
+    for (float i = 1.0; i <= 6.0; i++) {
+      float t = u_time * 0.3 + i * 0.15;
+
+      float y = sin(uv.x * (1.5 + i * 0.2) + t) * 0.15 * cos(t * 0.5);
+      y += cos(uv.x * (1.0 + i * 0.3) - t * 0.8) * 0.1;
+
+      float thickness = 0.0015 * i;
+      float glow = thickness / abs(uv.y - y);
+
+      // Hurdl orange palette (was emerald/cyan)
+      vec3 color = vec3(0.45 + i * 0.08, 0.18 + i * 0.05, 0.02 * i);
+      finalColor += color * glow;
+    }
+
+    gl_FragColor = vec4(finalColor, 1.0);
+  }
+`
+
+function WispBackground() {
+  const canvasRef = useRef(null)
   const shouldReduceMotion = useReducedMotion()
-  const mouseX = useMotionValue(0.5)
-  const mouseY = useMotionValue(0.32)
-  const springX = useSpring(mouseX, { stiffness: 45, damping: 20, mass: 1 })
-  const springY = useSpring(mouseY, { stiffness: 45, damping: 20, mass: 1 })
-  const left = useTransform(springX, (v) => `${v * 100}%`)
-  const top = useTransform(springY, (v) => `${v * 100}%`)
 
   useEffect(() => {
     if (shouldReduceMotion) return
-    const handlePointerMove = (event) => {
-      mouseX.set(event.clientX / window.innerWidth)
-      mouseY.set(event.clientY / window.innerHeight)
+    const canvas = canvasRef.current
+    const gl = canvas.getContext('webgl')
+    if (!gl) return
+
+    function resize() {
+      canvas.width = canvas.clientWidth
+      canvas.height = canvas.clientHeight
+      gl.viewport(0, 0, canvas.width, canvas.height)
     }
-    window.addEventListener('pointermove', handlePointerMove)
-    return () => window.removeEventListener('pointermove', handlePointerMove)
-  }, [shouldReduceMotion, mouseX, mouseY])
+
+    function createShader(type, source) {
+      const shader = gl.createShader(type)
+      gl.shaderSource(shader, source)
+      gl.compileShader(shader)
+      return shader
+    }
+
+    const program = gl.createProgram()
+    gl.attachShader(program, createShader(gl.VERTEX_SHADER, WISP_VERTEX_SHADER))
+    gl.attachShader(program, createShader(gl.FRAGMENT_SHADER, WISP_FRAGMENT_SHADER))
+    gl.linkProgram(program)
+    gl.useProgram(program)
+
+    const buffer = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW)
+
+    const positionLocation = gl.getAttribLocation(program, 'position')
+    gl.enableVertexAttribArray(positionLocation)
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0)
+
+    const timeLocation = gl.getUniformLocation(program, 'u_time')
+    const resolutionLocation = gl.getUniformLocation(program, 'u_resolution')
+
+    let rafId
+    function render(time) {
+      gl.uniform1f(timeLocation, time * 0.001)
+      gl.uniform2f(resolutionLocation, canvas.width, canvas.height)
+      gl.clearColor(0, 0, 0, 0)
+      gl.clear(gl.COLOR_BUFFER_BIT)
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+      rafId = requestAnimationFrame(render)
+    }
+
+    resize()
+    window.addEventListener('resize', resize)
+    rafId = requestAnimationFrame(render)
+
+    return () => {
+      window.removeEventListener('resize', resize)
+      cancelAnimationFrame(rafId)
+    }
+  }, [shouldReduceMotion])
 
   return (
-    <>
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-[10%] h-[38rem] w-[38rem] -translate-x-1/2 rounded-full opacity-[0.12] blur-[130px]"
-        style={{ background: `radial-gradient(circle, ${ORANGE}, transparent 70%)` }}
-      />
-      <motion.div
-        aria-hidden="true"
-        className="pointer-events-none absolute h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-[0.24] blur-[110px]"
-        style={{
-          left: shouldReduceMotion ? '50%' : left,
-          top: shouldReduceMotion ? '32%' : top,
-          background: `radial-gradient(circle, ${ORANGE}, transparent 70%)`,
-        }}
-      />
-    </>
+    <canvas
+      ref={canvasRef}
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 h-full w-full opacity-80 mix-blend-screen"
+    />
   )
 }
 
@@ -378,7 +444,7 @@ function Hero() {
 
   return (
     <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-[#0a0a0a] px-6 pt-24 text-center sm:px-8">
-      <MouseGradient />
+      <WispBackground />
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 opacity-[0.4] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_35%,black,transparent)]"
