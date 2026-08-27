@@ -687,7 +687,7 @@ function HowWeWork() {
   })
 
   return (
-    <section id="how-we-work" ref={sectionRef} className="relative mx-auto max-w-5xl scroll-mt-24 px-6 py-32 sm:px-8 md:py-40">
+    <section id="how-we-work" ref={sectionRef} className="relative mx-auto max-w-7xl scroll-mt-24 px-6 py-32 sm:px-8 md:py-40">
       <p
         aria-hidden="true"
         className="pointer-events-none select-none text-center text-[11vw] font-black leading-[0.75] tracking-tight text-white/[0.04] sm:text-[6vw]"
@@ -761,7 +761,7 @@ function Footer() {
   })
 
   return (
-    <footer className="relative overflow-hidden border-t border-white/[0.08] bg-[#0a0a0a]">
+    <footer className="relative overflow-hidden border-t border-white/[0.08] bg-[#1c1c1c]">
       <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-6 py-14 text-sm text-white/55 sm:grid-cols-4 sm:px-8">
         <motion.div {...fadeUp(0)} className="col-span-2 sm:col-span-1">
           <img src="/hurdl_logo.png" alt="Hurdl" className="h-14 w-auto" />
@@ -787,7 +787,11 @@ function Footer() {
 export default function Home() {
   return (
     <ReactLenis root options={{ autoRaf: true }}>
-      <main id="top" className="bg-[#0a0a0a] text-white antialiased">
+      <main
+        id="top"
+        className="bg-[#0a0a0a] text-white antialiased"
+        style={{ fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif" }}
+      >
         <NavBar />
         <Hero />
         <About />
