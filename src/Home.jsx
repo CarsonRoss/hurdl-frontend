@@ -718,7 +718,7 @@ function StepCard({ step, isLit }) {
           boxShadow: `inset 0 0 0 1px ${isLit ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.15)'}`,
         }}
       >
-        <div className="rounded-[1.4rem] bg-black/20 p-6 backdrop-blur-sm sm:p-8">
+        <div className="rounded-[1.4rem] bg-[#141210] p-6 sm:p-8">
           <span className="text-xs font-semibold tracking-[0.2em] text-white/40">{step.number}</span>
           <h3 className="mt-2 text-xl font-bold tracking-tight text-white sm:text-2xl">{step.title}</h3>
           <p className="mt-2 max-w-md text-[15px] leading-6 text-white/70">{step.description}</p>
