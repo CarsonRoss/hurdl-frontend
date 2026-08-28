@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useRef, useState } from 'react'
 import {
   AnimatePresence,
   motion,
@@ -9,7 +9,6 @@ import {
   useTransform,
 } from 'framer-motion'
 import { ReactLenis, useLenis } from 'lenis/react'
-import { Camera, Mesh, PlaneGeometry, Scene, ShaderMaterial, Vector2, WebGLRenderer } from 'three'
 import {
   ArrowUpRight,
   CaretRightIcon,
@@ -197,7 +196,7 @@ function ScrollTintText({ text, className }) {
   )
 }
 
-function Eyebrow({ label, dotClassName = 'bg-[#F89434]', textClassName = 'text-white/40' }) {
+function Eyebrow({ label, dotClassName = 'bg-[#F89434]', textClassName = 'text-white/40', className = '' }) {
   const shouldReduceMotion = useReducedMotion()
 
   return (
@@ -206,7 +205,7 @@ function Eyebrow({ label, dotClassName = 'bg-[#F89434]', textClassName = 'text-w
       whileInView={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-15% 0px' }}
       transition={{ duration: 0.6, ease: EASE_OUT }}
-      className="flex items-center gap-2"
+      className={`flex items-center gap-2 ${className}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${dotClassName}`} />
       <span className={`text-xs uppercase tracking-[0.14em] ${textClassName}`}>{label}</span>
@@ -238,171 +237,43 @@ function NavBar() {
   )
 }
 
-// Raymarched, dune-like wavy landscape (three.js), ported from a user-
-// supplied component into plain JSX for this project's stack. Base color
-// swapped from brown to Hurdl orange — safe to do directly here (unlike the
-// previous ogl gradient-mesh shader) because the only brightening operations
-// are additive-white (fresnel highlight) and a self-multiply toward black
-// (distance fog), neither of which shifts hue the way colorDodge did.
-// Skipped entirely under reduced motion.
-const WAVY_VERTEX_SHADER = `
-void main() {
-  gl_Position = vec4(position, 1.0);
-}
-`
-
-const WAVY_FRAGMENT_SHADER = `
-precision highp float;
-uniform vec2 resolution;
-uniform float time;
-
-#define T mod(2.*time,180.)
-#define S smoothstep
-
-float rnd(float a){return fract(sin(a*12.233)*78.599);}
-float rnd(vec2 p){return fract(sin(dot(p,p.yx+vec2(234,543)))*345678.);}
-
-float curve(float a,float b){
-  a/=b;
-  return mix(rnd(floor(a)), rnd(floor(a)+1.),
-    pow(S(0.,1.,fract(a)),10.));
-}
-
-mat2 rot(float a){
-  float s=sin(a), c=cos(a);
-  return mat2(c,-s,s,c);
-}
-
-float map(vec3 p){
-  if(p.y>0.28||p.z>15.) return 5e5;
-  float d = p.y + (1.-cos(sin(T+6.3*p.x)))*.1;
-  d += 1.-pow(cos(.75*sin(T+curve(T*.5,8.)+
-           2.*(1.+curve(T*2.5,14.4))*
-           (p.xz*rot(.125)).x)),2.);
-  d += 1.-cos(curve(T*.2,8.)+
-           sin(T+.8*(p.xz*rot(.38)).x))*.1;
-  d += 1.2*sin(p.z*.4+sin(p.x*.6+1.2));
-  d = max(d, -p.z);
-  return d * .5;
-}
-
-vec3 norm(vec3 p){
-  vec2 e = vec2(1e-3,0.0);
-  return normalize(vec3(
-    map(p + e.xyy) - map(p - e.xyy),
-    map(p + e.yxy) - map(p - e.yxy),
-    map(p + e.yyx) - map(p - e.yyx)
-  ));
-}
-
-void cam(inout vec3 p){
-  p.xz *= rot(sin(T*.2)*.2);
-}
-
-void main(){
-  vec2 uv = (gl_FragCoord.xy - .5*resolution)/
-            min(resolution.x,resolution.y);
-  vec3 col = vec3(0), p = vec3(0,0,-3),
-       rd = normalize(vec3(uv,1.));
-
-  cam(p);
-  cam(rd);
-
-  const float steps = 180., maxd = 15.;
-  float distAccum = 0., difF = mix(.75,1.,rnd(p.xz));
-
-  for(float i = 0.; i < steps; i++){
-    float d = map(p) * difF;
-    if(d < 1e-3) break;
-    if(d > maxd){ distAccum = maxd; break; }
-    p += rd * d;
-    distAccum += d;
-  }
-
-  vec3 n = norm(p);
-  vec3 lightDir = normalize(vec3(0,10,-.1));
-  float diff = max(dot(n, lightDir), 0.);
-  float fres = 1. + max(dot(-rd, n), 0.);
-
-  // Hurdl orange base (was brown vec3(.3,.2,.1)) — matches brand #F89434
-  col += vec3(.95, .55, .18);
-  col += .2 * pow(fres, 3.2) * diff;
-  col *= mix(col, vec3(0),
-    1. - exp(-125e-5 * distAccum*distAccum*distAccum));
-
-  gl_FragColor = vec4(col, 1.);
-}
-`
-
-function WavyBackground({ speed = 0.01 }) {
-  const containerRef = useRef(null)
-  const shouldReduceMotion = useReducedMotion()
-
-  useEffect(() => {
-    const container = containerRef.current
-    if (shouldReduceMotion || !container) return
-
-    const scene = new Scene()
-    const camera = new Camera()
-    camera.position.z = 1
-
-    const renderer = new WebGLRenderer({ antialias: true, alpha: true })
-    // Capped, not full devicePixelRatio — this shader raymarches every pixel,
-    // so retina displays (2-3x DPR) were tracing 4-9x more pixels than needed
-    // for what's ultimately a soft, blurry background.
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1))
-    container.appendChild(renderer.domElement)
-
-    const geometry = new PlaneGeometry(2, 2)
-    const uniforms = {
-      time: { value: 0.0 },
-      resolution: { value: new Vector2() },
-    }
-
-    const material = new ShaderMaterial({
-      uniforms,
-      vertexShader: WAVY_VERTEX_SHADER,
-      fragmentShader: WAVY_FRAGMENT_SHADER,
-    })
-
-    const mesh = new Mesh(geometry, material)
-    scene.add(mesh)
-
-    function onResize() {
-      const width = container.clientWidth
-      const height = container.clientHeight
-      renderer.setSize(width, height)
-      uniforms.resolution.value.set(renderer.domElement.width, renderer.domElement.height)
-    }
-    window.addEventListener('resize', onResize)
-    onResize()
-
-    let animationId
-    function animate() {
-      uniforms.time.value += speed
-      renderer.render(scene, camera)
-      animationId = requestAnimationFrame(animate)
-    }
-    animate()
-
-    return () => {
-      cancelAnimationFrame(animationId)
-      window.removeEventListener('resize', onResize)
-      if (container.contains(renderer.domElement)) {
-        container.removeChild(renderer.domElement)
-      }
-      geometry.dispose()
-      material.dispose()
-      renderer.dispose()
-    }
-  }, [shouldReduceMotion, speed])
-
+// Warm concentric-ring sunburst, layered from plain CSS gradients (radial
+// glow + repeating rings + turbulence-noise grain + edge vignette). Rings are
+// perfectly circular, so unlike the old raymarched shader this needs no
+// per-frame render loop — it's a static paint, cheaper and trivially
+// reduced-motion-safe. Only the glow's brightness breathes, and only barely.
+function SunburstBackground() {
   return (
-    <div
-      ref={containerRef}
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-0 h-full w-full overflow-hidden"
-    />
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div
+        className="sunburst-glow absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse 85% 65% at 50% 32%, #FFD9A8 0%, #FFA850 26%, #E07A1E 48%, #7A3A0A 74%, #0a0a0a 96%)',
+        }}
+      />
+      <div
+        className="absolute -inset-[15%]"
+        style={{
+          background:
+            'repeating-radial-gradient(circle at 50% 38%, transparent 0px, transparent 68px, rgba(255,255,255,0.07) 70px, rgba(255,255,255,0.07) 72px, transparent 74px)',
+        }}
+      />
+      <div
+        className="absolute inset-0 opacity-[0.15] mix-blend-overlay"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+          backgroundSize: '180px 180px',
+        }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'radial-gradient(ellipse 90% 75% at 50% 32%, transparent 45%, rgba(0,0,0,0.45) 100%)',
+        }}
+      />
+    </div>
   )
 }
 
@@ -504,12 +375,7 @@ function Hero() {
 
   return (
     <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-[#0a0a0a] px-6 pt-24 text-center sm:px-8">
-      <WavyBackground />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{ background: 'radial-gradient(ellipse 75% 65% at 50% 45%, rgba(10,10,10,0.8) 0%, rgba(10,10,10,0.55) 45%, transparent 75%)' }}
-      />
+      <SunburstBackground />
       <h1 className="relative mt-6 text-[clamp(2.5rem,7.5vw,6rem)] font-black leading-[0.98] tracking-[-0.035em]">
         <RevealWords text={'Leap over your\ntechnical Hurdl'} trigger="mount" baseDelay={0.15} />
       </h1>
@@ -791,16 +657,27 @@ function HowWeWork() {
 }
 
 function DemoSection() {
+  const shouldReduceMotion = useReducedMotion()
+
   return (
     <section id="schedule-demo" className="relative mx-auto max-w-4xl scroll-mt-24 px-6 py-28 sm:px-8 md:py-36">
-      <div className="max-w-xl">
-        <h2 className="text-[clamp(2rem,4.5vw,3rem)] font-black tracking-[-0.02em]">Schedule a Call</h2>
-        <p className="mt-3 text-white/55">Tell us about the problem you&apos;re facing. We&apos;ll show you how Hurdl can help.</p>
+      <motion.div
+        initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
+        whileInView={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-15% 0px' }}
+        transition={{ duration: 0.7, ease: EASE_OUT }}
+        className="mx-auto max-w-xl rounded-[2rem] border border-white/[0.08] bg-white/[0.03] px-6 py-12 text-center sm:px-12"
+      >
+        <Eyebrow label="Get in touch" className="justify-center" />
+        <h2 className="mt-4 text-[clamp(2rem,4.5vw,3rem)] font-black tracking-[-0.02em]">Schedule a Call</h2>
+        <p className="mx-auto mt-3 max-w-sm text-white/55">Tell us about the problem you&apos;re facing. We&apos;ll show you how Hurdl can help.</p>
 
-        <div className="mt-10 max-w-md">
+        <div className="mx-auto mt-10 max-w-md">
           <EmailCaptureForm />
         </div>
-      </div>
+
+        <p className="mt-4 text-xs text-white/35">No spam. We&apos;ll reach out to schedule a quick call.</p>
+      </motion.div>
     </section>
   )
 }
