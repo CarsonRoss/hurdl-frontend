@@ -377,7 +377,7 @@ function Hero() {
     <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-[#0a0a0a] px-6 pt-24 text-center sm:px-8">
       <SunburstBackground />
       <h1 className="relative mt-6 text-[clamp(2.5rem,7.5vw,6rem)] font-black leading-[0.98] tracking-[-0.035em]">
-        <RevealWords text={'Leap over your\ntechnical Hurdl'} trigger="mount" baseDelay={0.15} />
+        <RevealWords text={'Your software partner'} trigger="mount" baseDelay={0.15} />
       </h1>
 
       <motion.p
