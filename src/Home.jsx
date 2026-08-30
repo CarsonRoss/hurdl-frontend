@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import {
   AnimatePresence,
   motion,
@@ -96,7 +96,16 @@ function useScrollLink() {
   )
 }
 
-function RevealWords({ text, trigger = 'view', baseDelay = 0, viewportMargin = '-15% 0px', className }) {
+function RevealWords({
+  text,
+  trigger = 'view',
+  play = true,
+  baseDelay = 0,
+  duration = 0.9,
+  stagger = 0.05,
+  viewportMargin = '-15% 0px',
+  className,
+}) {
   const shouldReduceMotion = useReducedMotion()
 
   if (shouldReduceMotion) {
@@ -116,7 +125,7 @@ function RevealWords({ text, trigger = 'view', baseDelay = 0, viewportMargin = '
 
   const revealProps =
     trigger === 'mount'
-      ? { animate: { opacity: 1, y: 0, filter: 'blur(0px)' } }
+      ? { animate: play ? { opacity: 1, y: 0, filter: 'blur(0px)' } : undefined }
       : { whileInView: { opacity: 1, y: 0, filter: 'blur(0px)' }, viewport: { once: true, margin: viewportMargin } }
 
   return (
@@ -133,7 +142,7 @@ function RevealWords({ text, trigger = 'view', baseDelay = 0, viewportMargin = '
                   className="inline-block"
                   initial={{ opacity: 0, y: 20, filter: 'blur(2px)' }}
                   {...revealProps}
-                  transition={{ duration: 0.9, ease: EASE_OUT, delay: baseDelay + i * 0.05 }}
+                  transition={{ duration, ease: EASE_OUT, delay: baseDelay + i * stagger }}
                 >
                   {word}
                 </motion.span>
@@ -234,6 +243,110 @@ function NavBar() {
         </a>
       </div>
     </header>
+  )
+}
+
+// Full-screen splash that hides the already-mounted page behind three solid
+// circles: grey, then light grey, then black — each growing independently
+// from the center to fully cover the viewport, staggered and layered on top
+// of one another. Once the black circle finishes growing, the whole overlay
+// fades out to reveal the already-mounted Hero underneath (no page snapshot
+// needed — the content is already there).
+const HOLD_DURATION = 2
+const GROW_STAGGER = 0.2
+const GROW_DURATION = .4
+const FADE_DURATION = 0.1
+const GROW_CIRCLES = ['#3a3a3a', '#6b6b6b', '#050505'] // grey, light grey, black
+const RINGS_FADE_DURATION = 0.3
+
+// Three hairline ring outlines behind the wordmark during the hold. These are
+// transparent-fill, near-invisible borders sized bigger than the grow
+// circles could be at rest, so they're never hidden behind them.
+// Diameters measured directly off a full-resolution reference frame: ring
+// radii sit at ~14.6%/23.4%/32.1% of the viewport's larger dimension
+// (evenly spaced ~8.8% apart), i.e. roughly double what a first guess looked
+// like at a glance — doubled here to vmax diameters.
+const BREATH_RINGS = [38, 61, 83] // vmax diameters at rest
+
+function SiteIntro({ onFinish }) {
+  const shouldReduceMotion = useReducedMotion()
+  const [visible, setVisible] = useState(true)
+  const [fadingOut, setFadingOut] = useState(false)
+  const finishedRef = useRef(false)
+
+  useEffect(() => {
+    if (shouldReduceMotion && !finishedRef.current) {
+      finishedRef.current = true
+      onFinish?.()
+    }
+  }, [shouldReduceMotion, onFinish])
+
+  if (shouldReduceMotion) return null
+  if (!visible) return null
+
+  return (
+    <motion.div
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-[#161616]"
+      initial={{ opacity: 1 }}
+      animate={{ opacity: fadingOut ? 0 : 1 }}
+      transition={{ duration: FADE_DURATION, ease: EASE_OUT }}
+      onAnimationComplete={() => {
+        if (fadingOut) {
+          setVisible(false)
+          onFinish?.()
+        }
+      }}
+    >
+      <div className="relative flex items-center justify-center">
+        {GROW_CIRCLES.map((color, i) => (
+          <motion.span
+            key={color}
+            className="absolute h-[300vmax] w-[300vmax] rounded-full"
+            style={{ backgroundColor: color }}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{
+              duration: GROW_DURATION,
+              delay: HOLD_DURATION + i * GROW_STAGGER,
+              ease: 'easeOut',
+              ...(i === GROW_CIRCLES.length - 1 ? { onComplete: () => setFadingOut(true) } : {}),
+            }}
+          />
+        ))}
+        <motion.div
+          className="absolute inset-0 flex items-center justify-center"
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 0 }}
+          transition={{ duration: RINGS_FADE_DURATION, delay: HOLD_DURATION - RINGS_FADE_DURATION, ease: EASE_OUT }}
+        >
+          {BREATH_RINGS.map((diameter, i) => (
+            <motion.span
+              key={diameter}
+              className="absolute rounded-full border border-white"
+              style={{ width: `${diameter}vmax`, height: `${diameter}vmax` }}
+              initial={{ opacity: 0, scale: 0.82 }}
+              animate={{ opacity: [0, 0.55, 0.38, 0.55], scale: [0.82, 1, 0.96, 1] }}
+              transition={{
+                duration: 2,
+                times: [0, 0.25, 0.6, 1],
+                repeat: Infinity,
+                ease: 'easeInOut',
+                delay: i * 0.15,
+              }}
+            />
+          ))}
+        </motion.div>
+        <motion.span
+          initial={{ opacity: 0, y: 8, filter: 'blur(3px)' }}
+          animate={{ opacity: [0, 1, 1, 0], y: [8, 0, 0, 0], filter: ['blur(3px)', 'blur(0px)', 'blur(0px)', 'blur(0px)'] }}
+          transition={{ duration: HOLD_DURATION, times: [0, 0.15, 0.55, 1], ease: EASE_OUT }}
+          className="relative text-lg font-bold tracking-[0.3em] text-white sm:text-xl"
+        >
+          HURDL
+        </motion.span>
+      </div>
+    </motion.div>
   )
 }
 
@@ -370,20 +483,20 @@ function EmailCaptureForm() {
   )
 }
 
-function Hero() {
+function Hero({ introDone }) {
   const shouldReduceMotion = useReducedMotion()
 
   return (
     <section className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-[#161616] px-6 pt-24 text-center sm:px-8">
       <SunburstBackground />
       <h1 className="relative mt-6 text-[clamp(2.5rem,7.5vw,6rem)] font-black leading-[0.98] tracking-[-0.035em]">
-        <RevealWords text={'We are your\nsoftware partner'} trigger="mount" baseDelay={0.15} />
+        <RevealWords text={'We are your\nsoftware partner'} trigger="mount" play={introDone} baseDelay={0} duration={0.6} stagger={0.035} />
       </h1>
 
       <motion.p
         initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
-        animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: EASE_OUT, delay: .3 }}
+        animate={!introDone ? undefined : shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: EASE_OUT, delay: 0.35 }}
         className="relative mt-6 max-w-xl text-base leading-7 text-white/55 sm:text-lg"
       >
         Hurdl is your fractional CTO. We implement AI, build custom software, and make the
@@ -392,8 +505,8 @@ function Hero() {
 
       <motion.div
         initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
-        animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: EASE_OUT, delay: .4 }}
+        animate={!introDone ? undefined : shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: EASE_OUT, delay: 0.5 }}
         className="relative mt-10 w-full max-w-md"
       >
         <EmailCaptureForm />
@@ -717,6 +830,8 @@ function Footer() {
 }
 
 export default function Home() {
+  const [introDone, setIntroDone] = useState(false)
+
   return (
     <ReactLenis root options={{ autoRaf: true }}>
       <main
@@ -724,8 +839,9 @@ export default function Home() {
         className="bg-[#161616] text-white antialiased"
         style={{ fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif" }}
       >
+        <SiteIntro onFinish={() => setIntroDone(true)} />
         <NavBar />
-        <Hero />
+        <Hero introDone={introDone} />
         <About />
         <Services />
         <HowWeWork />
