@@ -249,7 +249,7 @@ function SunburstBackground() {
         className="sunburst-glow absolute inset-0"
         style={{
           background:
-            'radial-gradient(ellipse 85% 65% at 50% 32%, #FFD9A8 0%, #FFA850 26%, #E07A1E 48%, #7A3A0A 74%, #0a0a0a 96%)',
+            'radial-gradient(ellipse 85% 65% at 50% 32%, #FFD9A8 0%, #FFA850 26%, #E07A1E 48%, #7A3A0A 74%, #161616 96%)',
         }}
       />
       <div
@@ -721,7 +721,7 @@ export default function Home() {
     <ReactLenis root options={{ autoRaf: true }}>
       <main
         id="top"
-        className="bg-[#0a0a0a] text-white antialiased"
+        className="bg-[#161616] text-white antialiased"
         style={{ fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif" }}
       >
         <NavBar />
