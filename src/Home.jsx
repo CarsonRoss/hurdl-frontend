@@ -1,7 +1,10 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import {
   AnimatePresence,
+  animate,
   motion,
+  useMotionTemplate,
+  useMotionValue,
   useMotionValueEvent,
   useReducedMotion,
   useScroll,
@@ -246,18 +249,22 @@ function NavBar() {
   )
 }
 
-// Full-screen splash that hides the already-mounted page behind three solid
-// circles: grey, then light grey, then black — each growing independently
-// from the center to fully cover the viewport, staggered and layered on top
-// of one another. Once the black circle finishes growing, the whole overlay
-// fades out to reveal the already-mounted Hero underneath (no page snapshot
-// needed — the content is already there).
+// Full-screen splash that hides the already-mounted page behind two solid
+// circles — grey, then light grey — each growing from the center to fully
+// cover the viewport, staggered and layered on top of one another. The third
+// "circle" isn't a color at all: it's the already-mounted Hero itself,
+// revealed through a growing circular mask (same center-out growth
+// language as the two solid circles, just cutting a hole instead of
+// painting a fill) — so there's no separate fade-in step once it finishes;
+// by the time the hole covers the viewport, you're just looking at the page.
 const HOLD_DURATION = 2
 const GROW_STAGGER = 0.2
 const GROW_DURATION = .4
-const FADE_DURATION = 0.1
-const GROW_CIRCLES = ['#3a3a3a', '#6b6b6b', '#050505'] // grey, light grey, black
+const GROW_CIRCLES = ['#3a3a3a', '#6b6b6b'] // grey, light grey
 const RINGS_FADE_DURATION = 0.3
+// Same delay slot the removed third circle used to start in (HOLD_DURATION +
+// GROW_CIRCLES.length * GROW_STAGGER when it was index 2 of 3).
+const REVEAL_DELAY = HOLD_DURATION + GROW_CIRCLES.length * GROW_STAGGER
 
 // Three hairline ring outlines behind the wordmark during the hold. These are
 // transparent-fill, near-invisible borders sized bigger than the grow
@@ -271,32 +278,37 @@ const BREATH_RINGS = [38, 61, 83] // vmax diameters at rest
 function SiteIntro({ onFinish }) {
   const shouldReduceMotion = useReducedMotion()
   const [visible, setVisible] = useState(true)
-  const [fadingOut, setFadingOut] = useState(false)
-  const finishedRef = useRef(false)
+  const radius = useMotionValue(0)
+  const maskImage = useMotionTemplate`radial-gradient(circle at 50% 50%, transparent ${radius}vmax, black ${radius}vmax)`
 
   useEffect(() => {
-    if (shouldReduceMotion && !finishedRef.current) {
-      finishedRef.current = true
+    if (shouldReduceMotion) {
+      setVisible(false)
       onFinish?.()
+      return
     }
-  }, [shouldReduceMotion, onFinish])
 
-  if (shouldReduceMotion) return null
+    const controls = animate(radius, 150, {
+      delay: REVEAL_DELAY,
+      duration: GROW_DURATION,
+      ease: 'easeOut',
+      onComplete: () => {
+        setVisible(false)
+        onFinish?.()
+      },
+    })
+
+    return () => controls.stop()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldReduceMotion])
+
   if (!visible) return null
 
   return (
     <motion.div
       aria-hidden="true"
       className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-[#161616]"
-      initial={{ opacity: 1 }}
-      animate={{ opacity: fadingOut ? 0 : 1 }}
-      transition={{ duration: FADE_DURATION, ease: EASE_OUT }}
-      onAnimationComplete={() => {
-        if (fadingOut) {
-          setVisible(false)
-          onFinish?.()
-        }
-      }}
+      style={{ maskImage, WebkitMaskImage: maskImage }}
     >
       <div className="relative flex items-center justify-center">
         {GROW_CIRCLES.map((color, i) => (
@@ -310,7 +322,6 @@ function SiteIntro({ onFinish }) {
               duration: GROW_DURATION,
               delay: HOLD_DURATION + i * GROW_STAGGER,
               ease: 'easeOut',
-              ...(i === GROW_CIRCLES.length - 1 ? { onComplete: () => setFadingOut(true) } : {}),
             }}
           />
         ))}
