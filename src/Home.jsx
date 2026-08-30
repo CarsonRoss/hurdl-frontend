@@ -258,13 +258,19 @@ function NavBar() {
 // painting a fill) — so there's no separate fade-in step once it finishes;
 // by the time the hole covers the viewport, you're just looking at the page.
 const HOLD_DURATION = 2
-const GROW_STAGGER = 0.2
+const GROW_STAGGER = 0.23
 const GROW_DURATION = .4
 const GROW_CIRCLES = ['#3a3a3a', '#6b6b6b'] // grey, light grey
 const RINGS_FADE_DURATION = 0.3
 // Same delay slot the removed third circle used to start in (HOLD_DURATION +
 // GROW_CIRCLES.length * GROW_STAGGER when it was index 2 of 3).
 const REVEAL_DELAY = HOLD_DURATION + GROW_CIRCLES.length * GROW_STAGGER
+// The mask's `radius` tween runs for the full GROW_DURATION, but with
+// easeOut fronting the growth, it visually covers the viewport well before
+// that — waiting for the tween's own onComplete to flip introDone (which
+// gates the Hero's word-reveal) makes the headline feel late. This fires
+// independently, shortly after the mask starts growing.
+const REVEAL_FINISH_DELAY = 0.1
 
 // Three hairline ring outlines behind the wordmark during the hold. These are
 // transparent-fill, near-invisible borders sized bigger than the grow
@@ -292,13 +298,17 @@ function SiteIntro({ onFinish }) {
       delay: REVEAL_DELAY,
       duration: GROW_DURATION,
       ease: 'easeOut',
-      onComplete: () => {
-        setVisible(false)
-        onFinish?.()
-      },
     })
 
-    return () => controls.stop()
+    const finishTimer = setTimeout(() => {
+      setVisible(false)
+      onFinish?.()
+    }, (REVEAL_DELAY + REVEAL_FINISH_DELAY) * 1000)
+
+    return () => {
+      controls.stop()
+      clearTimeout(finishTimer)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldReduceMotion])
 
