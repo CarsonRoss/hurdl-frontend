@@ -258,7 +258,7 @@ function NavBar() {
 // painting a fill) — so there's no separate fade-in step once it finishes;
 // by the time the hole covers the viewport, you're just looking at the page.
 const HOLD_DURATION = 2
-const GROW_STAGGER = 0.23
+const GROW_STAGGER = 0.1
 const GROW_DURATION = .4
 const GROW_CIRCLES = ['#3a3a3a', '#6b6b6b'] // grey, light grey
 const RINGS_FADE_DURATION = 0.3
@@ -286,6 +286,7 @@ function SiteIntro({ onFinish }) {
   const [visible, setVisible] = useState(true)
   const radius = useMotionValue(0)
   const maskImage = useMotionTemplate`radial-gradient(circle at 50% 50%, transparent ${radius}vmax, black ${radius}vmax)`
+  window.__radius = radius
 
   useEffect(() => {
     if (shouldReduceMotion) {
